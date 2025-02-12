@@ -1,7 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Stack;
 import java.util.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
@@ -17,28 +16,20 @@ public class MIPS {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
     }
-    private static final Map<String, String> HEX_TO_BIT4 = new HashMap<>();
-    private static final Map<String, String> BIT5_TO_REG = new HashMap<>();
-    private static final Map<String, String> REG_TO_BIT5 = new HashMap<>();
+
     private static final int DATA_START_ADDRESS = 0x10010000;
     private static final int TEXT_START_ADDRESS = 0x00400000;
-
-    private final Map<String, Integer> REGISTERS;
-    private final Map<Integer, String> INSTRUCTIONS;
-    private final Map<Integer, String> MEMORY_AND_WORDS;
-    private final Map<Integer, String> PC_AND_REGISTERS;
-
-    private final Stack<Integer> JUMPED_ADDRESSES;
 
     private final MainControlUnit MAIN_CONTROL_UNIT;
     private final Registers REG;
 
+    private final Map<String, Integer> REGISTERS;
+    private final Map<Integer, String> INSTRUCTIONS;
+    private final Map<Integer, String> PC_AND_REGISTERS;
+    private final Map<Integer, String> MEMORY_AND_WORDS;
+
     private int PC;
     private int MEMORY;
-    private int JUMPED_ADDRESS;
-    private int JR_ADDRESS;
-    private boolean JUMPED;
-    private boolean JR;
     String MIPS_INSTRUCTION;
     String BIT32_INSTRUCTION;
     String OPCODE;
@@ -50,57 +41,7 @@ public class MIPS {
     int OFFSET;
     String TARGET;
 
-    static {
-        HEX_TO_BIT4.put("0", "0000"); HEX_TO_BIT4.put("1", "0001");
-        HEX_TO_BIT4.put("2", "0010"); HEX_TO_BIT4.put("3", "0011");
-        HEX_TO_BIT4.put("4", "0100"); HEX_TO_BIT4.put("5", "0101");
-        HEX_TO_BIT4.put("6", "0110"); HEX_TO_BIT4.put("7", "0111");
-        HEX_TO_BIT4.put("8", "1000"); HEX_TO_BIT4.put("9", "1001");
-        HEX_TO_BIT4.put("a", "1010"); HEX_TO_BIT4.put("b", "1011");
-        HEX_TO_BIT4.put("c", "1100"); HEX_TO_BIT4.put("d", "1101");
-        HEX_TO_BIT4.put("e", "1110"); HEX_TO_BIT4.put("f", "1111");
-
-        BIT5_TO_REG.put("00000", "$zero"); BIT5_TO_REG.put("00001", "$at");
-        BIT5_TO_REG.put("00010", "$v0"); BIT5_TO_REG.put("00011", "$v1");
-        BIT5_TO_REG.put("00100", "$a0"); BIT5_TO_REG.put("00101", "$a1");
-        BIT5_TO_REG.put("00110", "$a2"); BIT5_TO_REG.put("00111", "$a3");
-        BIT5_TO_REG.put("01000", "$t0"); BIT5_TO_REG.put("01001", "$t1");
-        BIT5_TO_REG.put("01010", "$t2"); BIT5_TO_REG.put("01011", "$t3");
-        BIT5_TO_REG.put("01100", "$t4"); BIT5_TO_REG.put("01101", "$t5");
-        BIT5_TO_REG.put("01110", "$t6"); BIT5_TO_REG.put("01111", "$t7");
-        BIT5_TO_REG.put("10000", "$s0"); BIT5_TO_REG.put("10001", "$s1");
-        BIT5_TO_REG.put("10010", "$s2"); BIT5_TO_REG.put("10011", "$s3");
-        BIT5_TO_REG.put("10100", "$s4"); BIT5_TO_REG.put("10101", "$s5");
-        BIT5_TO_REG.put("10110", "$s6"); BIT5_TO_REG.put("10111", "$s7");
-        BIT5_TO_REG.put("11000", "$t8"); BIT5_TO_REG.put("11001", "$t9");
-        BIT5_TO_REG.put("11010", "$k0"); BIT5_TO_REG.put("11011", "$k1");
-        BIT5_TO_REG.put("11100", "$gp"); BIT5_TO_REG.put("11101", "$sp");
-        BIT5_TO_REG.put("11110", "$fp"); BIT5_TO_REG.put("11111", "$ra");
-
-        REG_TO_BIT5.put("$zero", "00000"); REG_TO_BIT5.put("$at", "00001");
-        REG_TO_BIT5.put("$v0", "00010"); REG_TO_BIT5.put("$v1", "00011");
-        REG_TO_BIT5.put("$a0", "00100"); REG_TO_BIT5.put("$a1", "00101");
-        REG_TO_BIT5.put("$a2", "00110"); REG_TO_BIT5.put("$a3", "00111");
-        REG_TO_BIT5.put("$t0", "01000"); REG_TO_BIT5.put("$t1", "01001");
-        REG_TO_BIT5.put("$t2", "01010"); REG_TO_BIT5.put("$t3","01011");
-        REG_TO_BIT5.put("$t4", "01100"); REG_TO_BIT5.put("$t5", "01101");
-        REG_TO_BIT5.put("$t6", "01110"); REG_TO_BIT5.put("$t7", "01111");
-        REG_TO_BIT5.put("$s0", "10000"); REG_TO_BIT5.put("$s1", "10001");
-        REG_TO_BIT5.put("$s2", "10010"); REG_TO_BIT5.put("$s3", "10011");
-        REG_TO_BIT5.put("$s4", "10100"); REG_TO_BIT5.put("$s5", "10101");
-        REG_TO_BIT5.put("$s6", "10110"); REG_TO_BIT5.put("$s7", "10111");
-        REG_TO_BIT5.put("$t8", "11000"); REG_TO_BIT5.put("$t9", "11001");
-        REG_TO_BIT5.put("$k0", "11010"); REG_TO_BIT5.put("$k1", "11011");
-        REG_TO_BIT5.put("$gp", "11100"); REG_TO_BIT5.put("$sp", "11101");
-        REG_TO_BIT5.put("$fp", "11110"); REG_TO_BIT5.put("$ra", "11111");
-    }
-
     public MIPS() {
-        JUMPED_ADDRESSES = new Stack<>();
-        this.JUMPED_ADDRESS = 0;
-        this.JUMPED = false;
-        this.JR = false;
-
         this.REGISTERS = new HashMap<>();
         REGISTERS.put("$zero", 0x00000000); REGISTERS.put("$at", 0x00000000);
         REGISTERS.put("$v0", 0x00000000); REGISTERS.put("$v1", 0x00000000);
@@ -143,7 +84,7 @@ public class MIPS {
 
     private void write_back() {
         if (get_MAIN_CONTROL_UNIT().RegWrite == 1) {
-            set_register_value_with_bit5(REG_TO_BIT5.get(get_REG().WRITE_REGISTER), get_REG().WRITE_DATA);
+            set_register_value_with_bit5(Mappings.REG_TO_BIT5.get(get_REG().WRITE_REGISTER), get_REG().WRITE_DATA);
             logger.info("storing into hashmap: reg: " + get_REG().WRITE_REGISTER + ", val: " + get_REG().WRITE_DATA);
             this.PC_AND_REGISTERS.put(this.PC, this.REGISTERS.toString());
             print_pc_and_registers();  // prints out before pc + 4 and the registers
@@ -307,8 +248,8 @@ public class MIPS {
         for (int curr_char_ind = 0; curr_char_ind < mips_instruction.length(); curr_char_ind++) {
             String curr_hex_char = Character.toString(mips_instruction.charAt(curr_char_ind));
 
-            if (MIPS.HEX_TO_BIT4.containsKey(curr_hex_char)) {
-                String bit4_conversion_from_hex = MIPS.HEX_TO_BIT4.get(curr_hex_char);
+            if (Mappings.HEX_TO_BIT4.containsKey(curr_hex_char)) {
+                String bit4_conversion_from_hex = Mappings.HEX_TO_BIT4.get(curr_hex_char);
                 instruction_in_bit32.append(bit4_conversion_from_hex);
             }
         }
@@ -364,9 +305,10 @@ public class MIPS {
     private Registers get_REG() { return this.REG; }
     private MainControlUnit get_MAIN_CONTROL_UNIT() { return this.MAIN_CONTROL_UNIT; }
     private ALUControlUnit get_ALU() { return this.MAIN_CONTROL_UNIT.ALU_CONTROL; }
-    private void set_register_value_with_bit5(String register_in_bit5, int updated_register_value) { this.REGISTERS.put(BIT5_TO_REG.get(register_in_bit5), updated_register_value); }
-    private int get_register_value_from_bit5(String register_in_bit5) { return this.REGISTERS.get(BIT5_TO_REG.get(register_in_bit5)); }
-    private String get_register_from_bit5(String register_in_bit5) { return BIT5_TO_REG.get(register_in_bit5); }
+
+    private void set_register_value_with_bit5(String register_in_bit5, int updated_register_value) { this.REGISTERS.put(Mappings.BIT5_TO_REG.get(register_in_bit5), updated_register_value); }
+    private int get_register_value_from_bit5(String register_in_bit5) { return this.REGISTERS.get(Mappings.BIT5_TO_REG.get(register_in_bit5)); }
+    private String get_register_from_bit5(String register_in_bit5) { return Mappings.BIT5_TO_REG.get(register_in_bit5); }
     private String read_address() { return this.INSTRUCTIONS.get(this.PC); }
     private void print_pc_and_registers() { System.out.println(this.PC_AND_REGISTERS.get(this.PC)); }
 }
