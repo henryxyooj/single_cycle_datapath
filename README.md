@@ -1,3 +1,6 @@
+MIPS_old.java contains the previous implementation without control signals in the misc_files folder.
+Currently still working on the implementation with control signals.
+
 # Reduced Instruction Set MIPS Simulator
 ___
 
