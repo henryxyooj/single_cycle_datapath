@@ -17,6 +17,82 @@ public class MIPSTest {
     }
 
     @Test
+    void testInstructionExecuteRTypeAdd() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "014b4820"); // add $t1, $t2, $t3
+        mips.REGISTERS.put("$t1", 0x00000004);
+        mips.REGISTERS.put("$t2", 0x00000016);
+        mips.REGISTERS.put("$t3", 0x00000032);
+        mips.BIT32_INSTRUCTION = "00000001010010110100100000100000";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(0x00000048, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteRTypeAnd() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "02114024"); // and $t0, $s0, $s1
+        mips.REGISTERS.put("$t0", 0x00000000);
+        mips.REGISTERS.put("$s0", 0x00000064);
+        mips.REGISTERS.put("$s1", 0x00000012);
+        mips.BIT32_INSTRUCTION = "00000010000100010100000000100100";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(0x00000000, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteRTypeOr() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "0272B025"); // or $s6, $s3, $s2
+        mips.REGISTERS.put("$s6", 0x00000000);
+        mips.REGISTERS.put("$s3", 0x00000128);
+        mips.REGISTERS.put("$s2", 0x0000032);
+        mips.BIT32_INSTRUCTION = "00000010011100101011000000100101";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(0x0000013A, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteRTypeSlt() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "016A702A"); // slt $t6, $t3, $t2
+        mips.REGISTERS.put("$t6", 0x00000000);
+        mips.REGISTERS.put("$t3", 0x00000004);
+        mips.REGISTERS.put("$t2", 0x00000008);
+        mips.BIT32_INSTRUCTION = "00000001011010100111000000101010";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(0x00000001, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteRTypeSub() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "01336822"); // sub $t5, $t1, $s3
+        mips.REGISTERS.put("$t5", 0x00000000);
+        mips.REGISTERS.put("$t1", 0x00000012);
+        mips.REGISTERS.put("$s3", 0x00000006);
+        mips.BIT32_INSTRUCTION = "00000001001100110110100000100010";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(0x0000000C, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteRTypeSyscall() {  // not done yet
+        mips.testing_mode = true;
+
+    }
+
+    @Test
     void testInstructionDecodeITypeAddi() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "2149FFFF"); // addi $t1, $t2, 0xffff

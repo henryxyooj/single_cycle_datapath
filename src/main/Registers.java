@@ -17,7 +17,11 @@ public class Registers {
 
     void read_register_1(int val) { this.READ_REGISTER_1 = val; }
     void read_register_2(int val) { this.READ_REGISTER_2 = val; }
-    void write_register(String register) { this.WRITE_REGISTER = register; }
+
+    void write_register(String register) {
+        assert register != null : "write_register shouldn't be null";
+        this.WRITE_REGISTER = register;
+    }
 
     int read_data_1() {
         this.READ_DATA_1 = this.READ_REGISTER_1;

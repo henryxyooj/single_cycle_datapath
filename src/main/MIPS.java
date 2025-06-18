@@ -115,10 +115,11 @@ public class MIPS {
     }
 
     void execute() {
-        assert get_ALU().get_ALU_control_signal() != null : "ALU control signal shouldn't be null";
+        String alu_signal = get_ALU().get_ALU_control_signal();
+        assert alu_signal != null : "ALU control signal shouldn't be null";
 
-        get_ALU().set_ALU_control_signals(get_MAIN_CONTROL_UNIT().ALUOp, this.OPCODE, this.FUNCT);
-        logger.info("ALU operation control signal: " + get_ALU().get_ALU_control_signal() + " = " + get_MAIN_CONTROL_UNIT().instruction);
+        Set<String> valid_signals = Set.of("0010", "0110", "0000", "0001", "0111");
+        assert valid_signals.contains(alu_signal) : "Invalid ALU control signal: " + alu_signal;
 
         int alu_result = 0;
         int read_data_1 = get_REG().read_data_1();
@@ -126,7 +127,7 @@ public class MIPS {
         logger.info("read_data_1 (RS): " + read_data_1);
         logger.info("read_data_2 (Immediate or RT): " + read_data_2);
 
-        switch(get_ALU().get_ALU_control_signal()) {
+        switch(alu_signal) {
             case "0010":    // addition
                 alu_result = read_data_1 + read_data_2;
                 logger.info("updated [add] register value: " + alu_result);
@@ -148,8 +149,7 @@ public class MIPS {
                 logger.info("updated [slt] register value: " + alu_result);
                 break;
             default:
-                logger.info("unsupported ALU operation");
-                break;
+                throw new IllegalStateException("Unexpected ALU control signal: " + alu_signal);
         }
 
         get_REG().write_data(alu_result);
@@ -159,7 +159,6 @@ public class MIPS {
         memory();
     }
 
-    // ALUSrc is going to select "read data 2" for immediate or the second source register RT
     int alusrc_mux() {
         if (get_MAIN_CONTROL_UNIT().ALUSrc == 0) {  // r type
             return get_REG().read_data_2();
@@ -220,6 +219,9 @@ public class MIPS {
     }
 
     void luictr_mux() {
+        assert this.IMMEDIATE != null : "this.IMMEDIATE shouldn't be null";
+        assert this.IMMEDIATE.length() == 16 : "this.IMMEDIATE should be 16 bits";
+
         if (get_MAIN_CONTROL_UNIT().LUICtr == 1) {
             int imm_shifted_16bits = Integer.parseInt(this.IMMEDIATE, 2) << 16;
             get_REG().write_data(imm_shifted_16bits);
@@ -230,6 +232,9 @@ public class MIPS {
     }
 
     void sign_extend() {
+        assert this.IMMEDIATE != null : "this.IMMEDIATE shouldn't be null";
+        assert this.IMMEDIATE.length() == 16 : "this.IMMEDIATE should be 16 bits";
+
         int immediate = Integer.parseInt(this.IMMEDIATE, 2);
         logger.info("parsing bit16: " + this.IMMEDIATE + " to immediate: " + immediate);
 
@@ -248,12 +253,17 @@ public class MIPS {
         this.RD = this.BIT32_INSTRUCTION.substring(16, 21); // instruction [15-11]
 
         if (get_MAIN_CONTROL_UNIT().RegDst == 1) {
+            assert Mappings.BIT5_TO_REG.containsKey(this.RT);
+            assert Mappings.BIT5_TO_REG.containsKey(this.RD);
+
             get_REG().read_register_2(get_register_value_from_bit5(this.RT));
             get_REG().write_register(get_register_from_bit5(this.RD));
             logger.info("read register 2 retrieved: " + get_register_from_bit5(this.RT));
             logger.info("rtype with destination register (RD): " + get_register_from_bit5(this.RD));
         }
         else if (get_MAIN_CONTROL_UNIT().RegDst == 0){
+            assert Mappings.BIT5_TO_REG.containsKey(this.RT);
+
             get_REG().write_register(get_register_from_bit5(this.RT));
             logger.info("itype with destination register (RT): " + get_register_from_bit5(this.RT));
         }

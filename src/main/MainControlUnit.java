@@ -18,6 +18,15 @@ public class MainControlUnit {
 
     // 1 = true, 0 = false, -1 = don't care
     public void set_control_signal(String opcode, String funct) {
+        assert opcode != null && opcode.length() == 6 : "Opcode must be 6 bits long";
+
+        boolean valid_opcode = switch (opcode) {
+            case "000000", "001000", "001001", "001100", "001101", "001111",
+                 "000100", "000101", "100011", "101011", "000011" -> true;
+            default -> false;
+        };
+        assert valid_opcode : "Invalid or unsupported opcode : " + opcode;
+
         switch (opcode) {
             case "000000":  //rtype and syscall
                 this.RegDst = 1;
