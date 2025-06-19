@@ -17,6 +17,74 @@ public class MIPSTest {
     }
 
     @Test
+    void testInstructionExecuteITypeAddi() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "218BFFFF"); // addi $t3 $t4 0xffff
+        mips.REGISTERS.put("$t4", 0x00000005);
+        mips.BIT32_INSTRUCTION = "00100001100010111111111111111111";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals("0010", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().ALU_CONTROL_SIGNAL);
+        assertEquals(-1, Integer.parseInt(mips.IMMEDIATE), "Immediate value parsed incorrectly");
+        assertEquals(0x00000004, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteITypeAddiu() {    // implement later, this was copy and pasted from addi
+        mips.testing_mode = true;
+
+    }
+
+    @Test
+    void testInstructionExecuteITypeAndi() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "323300FF");  // andi $s3 $s1 0x00ff
+        mips.REGISTERS.put("$s1", 0x00000032);
+        mips.BIT32_INSTRUCTION = "00110010001100110000000011111111";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals("0000", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().ALU_CONTROL_SIGNAL);
+        assertEquals(255, Integer.parseInt(mips.IMMEDIATE), "Immediate value parsed incorrectly");
+        assertEquals(0x00000032, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExecuteITypeOri() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "3611000F");  // ori $s1 $s0 0x000f
+        mips.REGISTERS.put("$s0", 0x00000128);
+        mips.BIT32_INSTRUCTION = "00110110000100010000000000001111";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals("0001", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().ALU_CONTROL_SIGNAL);
+        assertEquals(15, Integer.parseInt(mips.IMMEDIATE), "Immediate value parsed incorrectly");
+        assertEquals(0x0000012F, mips.get_REG().WRITE_DATA);
+    }
+
+    @Test
+    void testInstructionExeciteITypeBeq() {
+
+    }
+
+    @Test
+    void testInstructionExecuteITypeBne() {
+
+    }
+
+    @Test
+    void testInstructionExecuteITypeLw() {
+
+    }
+
+    @Test
+    void testInstructionExecuteITypeSw() {
+
+    }
+
+    @Test
     void testInstructionExecuteRTypeAdd() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "014b4820"); // add $t1, $t2, $t3

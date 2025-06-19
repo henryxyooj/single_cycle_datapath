@@ -164,6 +164,7 @@ public class MIPS {
             return get_REG().read_data_2();
         }
         else {  // i type
+            logger.info("retrieving Integer.parseInt(this.IMMEDIATE): " + Integer.parseInt(this.IMMEDIATE));
             return Integer.parseInt(this.IMMEDIATE);
         }
     }
