@@ -107,6 +107,7 @@ public class MIPS {
 
     void memtoreg_mux() {
         if (get_MAIN_CONTROL_UNIT().MemtoReg == 0) {
+            if (testing_mode) { return; }
             write_back();
         }
         else {
