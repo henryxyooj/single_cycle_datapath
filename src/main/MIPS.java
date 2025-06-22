@@ -119,9 +119,6 @@ public class MIPS {
         String alu_signal = get_ALU().get_ALU_control_signal();
         assert alu_signal != null : "ALU control signal shouldn't be null";
 
-        Set<String> valid_signals = Set.of("0010", "0110", "0000", "0001", "0111");
-        assert valid_signals.contains(alu_signal) : "Invalid ALU control signal: " + alu_signal;
-
         int alu_result = 0;
         int read_data_1 = get_REG().read_data_1();
         int read_data_2 = alusrc_mux();
@@ -253,6 +250,9 @@ public class MIPS {
         this.RT = this.BIT32_INSTRUCTION.substring(11, 16); // instruction [20-16]
         this.RD = this.BIT32_INSTRUCTION.substring(16, 21); // instruction [15-11]
 
+        Set<Integer> valid_regdst = Set.of(1, 0, -1);
+        assert valid_regdst.contains(this.get_MAIN_CONTROL_UNIT().RegDst) : "Invalid RegDst: " + this.get_MAIN_CONTROL_UNIT().RegDst;
+
         if (get_MAIN_CONTROL_UNIT().RegDst == 1) {
             assert Mappings.BIT5_TO_REG.containsKey(this.RT);
             assert Mappings.BIT5_TO_REG.containsKey(this.RD);
@@ -267,6 +267,9 @@ public class MIPS {
 
             get_REG().write_register(get_register_from_bit5(this.RT));
             logger.info("itype with destination register (RT): " + get_register_from_bit5(this.RT));
+        }
+        else {
+            assert this.get_MAIN_CONTROL_UNIT().RegDst == -1 : "RegDst is -1, what instruction is this?";
         }
     }
 
