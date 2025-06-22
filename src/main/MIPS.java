@@ -89,7 +89,7 @@ public class MIPS {
             set_register_value_with_bit5(Mappings.REG_TO_BIT5.get(get_REG().WRITE_REGISTER), get_REG().WRITE_DATA);
             logger.info("storing into hashmap: reg: " + get_REG().WRITE_REGISTER + ", val: " + get_REG().WRITE_DATA);
             this.PC_AND_REGISTERS.put(this.PC, this.REGISTERS.toString());
-            print_pc_and_registers();  // prints out before pc + 4 and the registers
+            print_pc_and_registers();
         }
         else {
             logger.info("write back skipped, RegWrite = 0");
@@ -174,7 +174,6 @@ public class MIPS {
         assert this.BIT32_INSTRUCTION != null : "instruction_31_0 shouldn't be null";
         assert this.BIT32_INSTRUCTION.length() == 32 : "instruction_31_0 length is incorrect";
 
-        // decode the opcode, funct, and immediate
         this.OPCODE = this.BIT32_INSTRUCTION.substring(0, 6);
         this.FUNCT = this.BIT32_INSTRUCTION.substring(26, 32);
         this.IMMEDIATE = this.BIT32_INSTRUCTION.substring(16, 32);
@@ -287,6 +286,7 @@ public class MIPS {
         this.BIT32_INSTRUCTION = instruction_in_bit32.toString();
         logger.info("instruction_31_0: " + this.BIT32_INSTRUCTION);
 
+        if (testing_mode) { return; }
         instruction_decode();
     }
 
@@ -316,7 +316,7 @@ public class MIPS {
                 if (!currline.matches("^[a-f0-9A-F]{8}$")) {
                     throw new IllegalArgumentException("Invalid memory format: " + currline);
                 }
-                // stores the memory address with it's associated value: (0x10010000, 0x65746e45)
+                // stores the memory address with its associated value: (0x10010000, 0x65746e45)
                 this.MEMORY_AND_WORDS.put(this.MEMORY, currline);
                 this.MEMORY += 4;
             }
@@ -333,7 +333,7 @@ public class MIPS {
                 if (!line.matches("^[0-9a-fA-F]{8}$")) {
                     throw new IllegalArgumentException("Invalid instruction format: " + line);
                 }
-                // stores the address with it's associated value: (4194304, 24020004)
+                // stores the address with its associated value: (4194304 [or 0x00400000], 24020004)
                 this.INSTRUCTIONS.put(address, line);
                 address += 4;
             }
