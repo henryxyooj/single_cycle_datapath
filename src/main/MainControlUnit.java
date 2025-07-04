@@ -8,6 +8,7 @@ public class MainControlUnit {
     public int RegWrite;
     public int Jump;
     public int LUICtr;
+    public int PCSrc;
     public String ALUOp;
     public String instruction;
     ALUControlUnit ALU_CONTROL;
@@ -22,24 +23,41 @@ public class MainControlUnit {
 
         boolean valid_opcode = switch (opcode) {
             case "000000", "001000", "001001", "001100", "001101", "001111",
-                 "000100", "000101", "100011", "101011", "000011" -> true;
+                 "000100", "000101", "100011", "101011", "000011", "000010" -> true;
             default -> false;
         };
         assert valid_opcode : "Invalid or unsupported opcode : " + opcode;
 
         switch (opcode) {
-            case "000000":  //rtype and syscall
-                this.RegDst = 1;
-                this.Branch = 0;
-                this.MemRead = 0;
-                this.MemtoReg = 0;
-                this.ALUSrc = 0;
-                this.MemWrite = 0;
-                this.RegWrite = 1;
-                this.Jump = 0;
-                this.LUICtr = 0;
-                this.ALUOp = "10";  // ALU operation determined by funct
-                this.instruction = "rtype and syscall";
+            case "000000":  //rtype, syscall, or jr
+                if (funct.equals("001000")) {
+                    this.RegDst = -1;
+                    this.Branch = 0;
+                    this.MemRead = 0;
+                    this.MemtoReg = -1;
+                    this.ALUSrc = -1;
+                    this.MemWrite = 0;
+                    this.RegWrite = 0;
+                    this.Jump = 1;
+                    this.LUICtr = 0;
+                    this.PCSrc = 2;
+                    this.ALUOp = "XX";  // ALU operation determined by funct
+                    this.instruction = "jr";
+                }
+                else {
+                    this.RegDst = 1;
+                    this.Branch = 0;
+                    this.MemRead = 0;
+                    this.MemtoReg = 0;
+                    this.ALUSrc = 0;
+                    this.MemWrite = 0;
+                    this.RegWrite = 1;
+                    this.Jump = 0;
+                    this.LUICtr = 0;
+                    this.PCSrc = 0;
+                    this.ALUOp = "10";  // ALU operation determined by funct
+                    this.instruction = "rtype or syscall";
+                }
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
                 break;
             case "001000":  // addi
@@ -52,6 +70,7 @@ public class MainControlUnit {
                 this.RegWrite = 1;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "00";  // ALU operation determined by funct
                 this.instruction = "addi";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -66,6 +85,7 @@ public class MainControlUnit {
                 this.RegWrite = 1;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "00";  // ALU operation determined by funct
                 this.instruction = "addiu";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -80,6 +100,7 @@ public class MainControlUnit {
                 this.RegWrite = 1;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "11";  // ALU operation determined by funct
                 this.instruction = "andi";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -94,6 +115,7 @@ public class MainControlUnit {
                 this.RegWrite = 1;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "11";  // ALU operation determined by funct
                 this.instruction = "ori";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -108,6 +130,7 @@ public class MainControlUnit {
                 this.RegWrite = 1;
                 this.Jump = 0;
                 this.LUICtr = 1;
+                this.PCSrc = 0;
                 this.ALUOp = "XX";  // ALU operation determined by funct
                 this.instruction = "lui";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -123,6 +146,7 @@ public class MainControlUnit {
                 this.RegWrite = 0;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "01";  // ALU operation determined by funct
                 this.instruction = "branch";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -137,6 +161,7 @@ public class MainControlUnit {
                 this.RegWrite = 1;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "00";  // ALU adds base + offset
                 this.instruction = "lw";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -151,6 +176,7 @@ public class MainControlUnit {
                 this.RegWrite = 0;
                 this.Jump = 0;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "00";  // ALU adds base + offset
                 this.instruction = "sw";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
@@ -165,41 +191,29 @@ public class MainControlUnit {
                 this.RegWrite = 0;
                 this.Jump = 1;
                 this.LUICtr = 0;
+                this.PCSrc = 0;
                 this.ALUOp = "XX";  // ALU adds base + offset
                 this.instruction = "j";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
                 break;
             case "000011": // jal
-                this.RegDst = -1;
+                this.RegDst = 2;
                 this.Branch = 0;
                 this.MemRead = 0;
-                this.MemtoReg = -1;
+                this.MemtoReg = 2;
                 this.ALUSrc = -1;
                 this.MemWrite = 0;
-                this.RegWrite = 0;
+                this.RegWrite = 1;
                 this.Jump = 1;
                 this.LUICtr = 0;
+                this.PCSrc = 3;
                 this.ALUOp = "XX";  // ALU adds base + offset
                 this.instruction = "jal";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
                 break;
             default:
-                System.out.println("Unsupported instructions");
-                break;
+                throw new IllegalStateException("Unexpected opcode: " + opcode);
         }
-    }
-
-    void print_signals() {
-        System.out.println("RegDst = " + this.RegDst +
-                            "\nBranch = " + this.Branch +
-                            "\nMemRead = " + this.MemRead +
-                            "\nMemtoReg = " + this.MemtoReg +
-                            "\nALUSrc = " + this.ALUSrc +
-                            "\nMemWrite = " + this.MemWrite +
-                            "\nRegWrite = " + this.RegWrite +
-                            "\nJump = " + this.Jump +
-                            "\nLUICtr = " + this.LUICtr +
-                            "\nALUOp = " + this.ALUOp);
     }
 
     String get_instruction() { return this.instruction; }
@@ -249,6 +263,8 @@ class ALUControlUnit {
                     "0001";
             case "101010" ->  // slt
                     "0111";
+            case "001000" ->  // jr
+                    "XXXX";
             default -> "XXXX";
         };
     }

@@ -196,7 +196,7 @@ public class MainControlUnitTest {
         assertEquals(-1, mcu.MemtoReg);
         assertEquals(-1, mcu.ALUSrc);
         assertEquals(0, mcu.MemWrite);
-        assertEquals(0, mcu.RegWrite);
+        assertEquals(1, mcu.RegWrite);
         assertEquals(1, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
         assertEquals("XX", mcu.ALUOp);

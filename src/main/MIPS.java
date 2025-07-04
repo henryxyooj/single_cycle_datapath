@@ -99,19 +99,29 @@ public class MIPS {
     void memory() {
         if (get_MAIN_CONTROL_UNIT().MemWrite == 0 && get_MAIN_CONTROL_UNIT().MemRead == 0) {
             memtoreg_mux();
+            if (testing_mode) { return; }
         }
         else {
             logger.info("unsupported operations for now");
         }
+
+        write_back();
     }
 
     void memtoreg_mux() {
+        Set<Integer> valid_integer = Set.of(-1, 0, 1, 2);
+        assert valid_integer.contains(get_MAIN_CONTROL_UNIT().MemtoReg) : "Invalid MemtoReg value";
+
         if (get_MAIN_CONTROL_UNIT().MemtoReg == 0) {
             if (testing_mode) { return; }
             write_back();
         }
-        else {
-            logger.info("unspported oeprations for now");
+        else if (get_MAIN_CONTROL_UNIT().MemtoReg == 1) {
+            logger.info("waiting for implementation");
+        }
+        else if (get_MAIN_CONTROL_UNIT().MemtoReg == 2) {
+            get_REG().write_data(this.PC + 4);
+            logger.info("MemtoReg is 2, writing data of " + (this.PC + 4) + " to $ra");
         }
     }
 
@@ -124,6 +134,8 @@ public class MIPS {
         int read_data_2 = alusrc_mux();
         logger.info("read_data_1 (RS): " + read_data_1);
         logger.info("read_data_2 (Immediate or RT): " + read_data_2);
+
+        pcsrc_mux(read_data_1);
 
         switch(alu_signal) {
             case "0010":    // addition
@@ -146,8 +158,10 @@ public class MIPS {
                 alu_result = read_data_1 < read_data_2 ? 1 : 0;
                 logger.info("updated [slt] register value: " + alu_result);
                 break;
-            default:
-                throw new IllegalStateException("Unexpected ALU control signal: " + alu_signal);
+            case "XXXX":    // jr, don't care operations
+                logger.info("don't care in aluop");
+                if (testing_mode) { return; }
+                memory();
         }
 
         get_REG().write_data(alu_result);
@@ -155,6 +169,29 @@ public class MIPS {
 
         if (testing_mode) { return; }
         memory();
+    }
+
+    void pcsrc_mux(int read_data_1) {   // the calculations are already done, this mux selects the final source of the PC from multiple options
+        Set<Integer> valid_pcsrc = Set.of(-1, 0, 1, 2, 3);
+        assert valid_pcsrc.contains(get_MAIN_CONTROL_UNIT().PCSrc) : "PCSrc is invalid";
+
+        switch (get_MAIN_CONTROL_UNIT().PCSrc) {
+            case 0: // default path
+                this.PC += 4;
+                break;
+            case 1: // branch logic
+                break;
+            case 2: // jr
+                this.PC = read_data_1;
+                logger.info("updated pc with read_data_1 " + read_data_1);
+                break;
+            case 3: // jal
+                this.PC += 4;
+                // pc has been updated through jump_mux()
+                break;
+            default:
+                throw new IllegalStateException(get_MAIN_CONTROL_UNIT().PCSrc + " is not a valid PCSrc option [-1, 0, 1, 2, 3]");
+        }
     }
 
     int alusrc_mux() {
@@ -181,10 +218,10 @@ public class MIPS {
         get_MAIN_CONTROL_UNIT().set_control_signal(this.OPCODE, this.FUNCT);
 
         if (get_MAIN_CONTROL_UNIT().Jump == 1) {
-            this.TARGET = this.BIT32_INSTRUCTION.substring(4, 32);
+            this.TARGET = this.BIT32_INSTRUCTION.substring(6, 32);
             logger.info("retrieved target for jump : " + this.TARGET);
-            jump_mux();
-            return;
+            int pc_adder_alu_result = program_counter_adder();
+            jump_mux(pc_adder_alu_result);
         }
 
         this.RS = this.BIT32_INSTRUCTION.substring(6, 11);
@@ -204,16 +241,26 @@ public class MIPS {
         execute();
     }
 
-    void jump_mux() {
-        logger.info("Entered jump_mux with 26 bits: " + this.TARGET);
-        int target = Integer.parseInt(this.TARGET, 2);
-        target = target << 2;
+    void jump_mux(int pc_adder) {
+        int parsed_target = Integer.parseInt(this.TARGET, 2);   // 26 bit immediate
+        int word_aligned = parsed_target * 4;   // remember, when constructing the 32 bit, the last 2 insiginificant bits are chopped off, use this to word align it
+        int upper_bits = pc_adder & 0xF0000000; // the first hexadecimal doesn't matter, this represents the upper 4 bits of the pc + 4
+        this.JUMP_ADDRESS = upper_bits | word_aligned; // XXXXYYYYYYYYYYYYYYYYYYYYYYYYYYYY, combine them together
 
-        int upper_bits = (this.PC + 4) & 0xF0000000;
-        int jump_address = upper_bits | target;
+        logger.info("Parsed target: " + parsed_target);
+        logger.info("Word aligned: 0x" + Integer.toHexString(word_aligned));
+        logger.info("Upper bits: 0x" + Integer.toHexString(upper_bits));
+        logger.info("Final jump address: 0x" + Integer.toHexString(this.JUMP_ADDRESS));
 
+        assert this.JUMP_ADDRESS >= TEXT_START_ADDRESS : "Jump address is before the text segment";
+        assert (this.JUMP_ADDRESS % 4) == 0 : "Jump address is not a multiple of four, incorrect jump address";
+    }
 
-
+    int program_counter_adder() {
+        if (get_MAIN_CONTROL_UNIT().Jump == 1) {    // stack or queue later?
+            return this.PC + 4;
+        }
+        return 0;
     }
 
     void luictr_mux() {
@@ -250,7 +297,7 @@ public class MIPS {
         this.RT = this.BIT32_INSTRUCTION.substring(11, 16); // instruction [20-16]
         this.RD = this.BIT32_INSTRUCTION.substring(16, 21); // instruction [15-11]
 
-        Set<Integer> valid_regdst = Set.of(1, 0, -1);
+        Set<Integer> valid_regdst = Set.of(1, 0, -1, 2);
         assert valid_regdst.contains(this.get_MAIN_CONTROL_UNIT().RegDst) : "Invalid RegDst: " + this.get_MAIN_CONTROL_UNIT().RegDst;
 
         if (get_MAIN_CONTROL_UNIT().RegDst == 1) {
@@ -268,8 +315,9 @@ public class MIPS {
             get_REG().write_register(get_register_from_bit5(this.RT));
             logger.info("itype with destination register (RT): " + get_register_from_bit5(this.RT));
         }
-        else {
-            assert this.get_MAIN_CONTROL_UNIT().RegDst == -1 : "RegDst is -1, what instruction is this?";
+        else if (get_MAIN_CONTROL_UNIT().RegDst == 2) {
+            get_REG().write_register("$ra");
+            logger.info("jtype with destination register $ra for jal");
         }
     }
 
@@ -295,21 +343,19 @@ public class MIPS {
 
     void program_counter() {
         while (this.PC < this.INSTRUCTIONS.size() * 4 + TEXT_START_ADDRESS) {
-            program_counter_adder();
-            instruction_memory();
+            if (get_MAIN_CONTROL_UNIT().Jump != 1) {
+                program_counter_adder();
+                instruction_memory();
+            }
+            else if (get_MAIN_CONTROL_UNIT().Jump == 1) {
+                this.PC = this.JUMP_ADDRESS;
+                instruction_memory();
+            }
+            else {
+                throw new IllegalStateException("Jump control signal may be incorrect in the Main Control Unit");
+            }
         }
         System.out.println("-- program finished running (dropped off bottom) --");
-    }
-
-    void program_counter_adder() {
-        if (get_MAIN_CONTROL_UNIT().Jump == 1) {
-            //
-            //jump_mux();
-        }
-        else {
-            this.PC += 4;
-            //jump_mux();
-        }
     }
 
     public void load_memory(String data_file) throws IOException {

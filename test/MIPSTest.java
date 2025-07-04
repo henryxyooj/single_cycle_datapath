@@ -19,6 +19,71 @@ public class MIPSTest {
     }
 
     @Test
+    void testWriteBackJTypeJ() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "0840000C");  // j 0x0040000c
+        mips.BIT32_INSTRUCTION = "00001000000100000000000000000011";
+
+        Map<String, Integer> initial_registers = new HashMap<>(mips.REGISTERS);
+
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+        mips.write_back();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+    }
+
+    @Test
+    void testWriteBackJTypeJr() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
+        mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
+
+        Map<String, Integer> initial_registers = new HashMap<>(mips.REGISTERS);
+
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+        mips.write_back();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+    }
+
+    @Test
+    void testWriteBackJTypeJal() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400004, "0x0c100004");  // jal 0x0100004
+        mips.BIT32_INSTRUCTION = "00001100000100000000000000000100";
+
+        Map<String, Integer> initial_registers = new HashMap<>(mips.REGISTERS);
+
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+        mips.write_back();
+
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+        assertEquals("$ra", mips.get_REG().WRITE_REGISTER);
+        assertEquals(0x00400008, mips.get_register_value_from_bit5("11111"));
+
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$ra")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg),
+                        "Register " + reg + " was unexpectedly modified");
+            }
+        }
+    }
+
+    @Test
     void testWriteBackITypeAddi() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "212BFFFF"); // addi $t3, $t1, 0xffff
@@ -32,7 +97,7 @@ public class MIPSTest {
         mips.memory();
         mips.write_back();
 
-
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().RegWrite);
         assertEquals("$t3", mips.get_REG().WRITE_REGISTER);
         assertEquals(0x00000015, mips.REGISTERS.get("$t3"));
         assertEquals(0x00000015, mips.REGISTERS.get(mips.get_register_from_bit5(mips.RT)));
@@ -290,6 +355,45 @@ public class MIPSTest {
     }
 
     @Test
+    void testMemoryJTypeJ() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "0840000C");  // j 0x0040000c
+        mips.BIT32_INSTRUCTION = "00001000000100000000000000000011";
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+    }
+
+    @Test
+    void testMemoryJTypeJr() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
+        mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+    }
+
+    @Test
+    void testMemoryJTypeJal() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400004, "0x0c100004");  // jal 0x0100004
+        mips.BIT32_INSTRUCTION = "00001100000100000000000000000100";
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+    }
+
+    @Test
     void testMemoryITypeAddi() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "212BFFFF"); // addi $t3, $t1, 0xffff
@@ -470,6 +574,44 @@ public class MIPSTest {
     }
 
     @Test
+    void testExecuteJTypeJr() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
+        mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(2, mips.get_MAIN_CONTROL_UNIT().PCSrc);
+    }
+
+    @Test
+    void testPCSrcMuxJr() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
+        mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
+        mips.REGISTERS.put("$ra", 0x00400008);
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(0x00400008, mips.PC);
+    }
+
+    @Test
+    void testExecuteJTypeJal() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400004, "0x0c100004");  // jal 0x0100004
+        mips.BIT32_INSTRUCTION = "00001100000100000000000000000100";
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals("$ra", mips.get_REG().WRITE_REGISTER);
+        assertEquals(3, mips.get_MAIN_CONTROL_UNIT().PCSrc);
+        assertEquals(2, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
+
+        assertEquals(0x00400010, mips.JUMP_ADDRESS);
+    }
+
+    @Test
     void testExecuteITypeAddi() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "218BFFFF"); // addi $t3 $t4 0xffff
@@ -622,6 +764,106 @@ public class MIPSTest {
     }
 
     @Test
+    void testInstructionDecodeJTypeJ() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "0840000C");  // j 0x0040000c
+        mips.BIT32_INSTRUCTION = "00001000000100000000000000000011";
+        mips.instruction_decode();
+
+        assertEquals("000010", mips.BIT32_INSTRUCTION.substring(0, 6), "Opcode has been incorrectly parsed");
+        assertEquals("00000100000000000000000011", mips.BIT32_INSTRUCTION.substring(6, 32));
+
+        // are the control signals correctly set?
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().RegDst);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Branch);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().ALUSrc);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().Jump);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
+        assertEquals("XX", mips.get_MAIN_CONTROL_UNIT().ALUOp);
+        assertEquals("j", mips.get_MAIN_CONTROL_UNIT().instruction);
+
+        // what did the ALU yield?
+        assertEquals("XXXX", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().get_ALU_control_signal());
+    }
+
+    @Test
+    void testJumpMuxJ() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "08100003");  // j 0x0040000c
+        mips.BIT32_INSTRUCTION = "00001000000100000000000000000011";
+
+        mips.instruction_decode();
+        assertEquals("00000100000000000000000011", mips.TARGET);
+
+        mips.jump_mux(mips.PC + 4);
+        assertEquals(0x0040000C, mips.JUMP_ADDRESS);
+    }
+
+    @Test
+    void testInstructionDecodeJTypeJr() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
+        mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
+        mips.instruction_decode();
+
+        assertEquals("000000", mips.BIT32_INSTRUCTION.substring(0, 6), "Opcode has been incorrectly parsed");
+        assertEquals("001000", mips.BIT32_INSTRUCTION.substring(26, 32));
+
+        // are the control signals correctly set?
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().RegDst);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Branch);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().ALUSrc);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().Jump);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
+        assertEquals(2, mips.get_MAIN_CONTROL_UNIT().PCSrc);
+        assertEquals("XX", mips.get_MAIN_CONTROL_UNIT().ALUOp);
+        assertEquals("jr", mips.get_MAIN_CONTROL_UNIT().instruction);
+
+        // should be getting the $ra register, correct?
+        assertEquals("11111", mips.RS);
+        assertEquals("$ra", mips.get_register_from_bit5(mips.RS));
+
+        // what did the ALU yield?
+        assertEquals("XXXX", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().get_ALU_control_signal());
+    }
+
+    @Test
+    void testInstructionDecodeJTypeJal() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400014, "0x0c100004");  // jal 0x0100004
+        mips.BIT32_INSTRUCTION = "00001100000100000000000000000100";
+        mips.instruction_decode();
+
+        assertEquals("000011", mips.BIT32_INSTRUCTION.substring(0, 6), "Opcode has been incorrectly parsed");
+        assertEquals("00000100000000000000000100", mips.BIT32_INSTRUCTION.substring(6, 32));
+
+        // are the control signals correctly set?
+        assertEquals(2, mips.get_MAIN_CONTROL_UNIT().RegDst);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Branch);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(2, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().ALUSrc);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().Jump);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
+        assertEquals(3, mips.get_MAIN_CONTROL_UNIT().PCSrc);
+        assertEquals("XX", mips.get_MAIN_CONTROL_UNIT().ALUOp);
+        assertEquals("jal", mips.get_MAIN_CONTROL_UNIT().instruction);
+
+        // what did the ALU yield?
+        assertEquals("XXXX", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().get_ALU_control_signal());
+    }
+
+    @Test
     void testInstructionDecodeITypeAddi() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "2149FFFF"); // addi $t1, $t2, 0xffff
@@ -644,6 +886,7 @@ public class MIPSTest {
         assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Jump);
         assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
         assertEquals("00", mips.get_MAIN_CONTROL_UNIT().ALUOp);
+        assertEquals("addi", mips.get_MAIN_CONTROL_UNIT().instruction);
 
         // what did the ALU yield?
         assertEquals("0010", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().get_ALU_control_signal());
