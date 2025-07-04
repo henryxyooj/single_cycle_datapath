@@ -23,8 +23,9 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("10", mcu.ALUOp);
-        assertEquals("rtype and syscall", mcu.instruction);
+        assertEquals("rtype or syscall", mcu.instruction);
     }
 
     @Test
@@ -39,6 +40,7 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("00", mcu.ALUOp);
         assertEquals("addi", mcu.instruction);
     }
@@ -55,6 +57,7 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("00", mcu.ALUOp);
         assertEquals("addiu", mcu.instruction);
     }
@@ -71,6 +74,7 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("11", mcu.ALUOp);
         assertEquals("andi", mcu.instruction);
     }
@@ -87,6 +91,7 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("11", mcu.ALUOp);
         assertEquals("ori", mcu.instruction);
     }
@@ -103,6 +108,7 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(1, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("XX", mcu.ALUOp);
         assertEquals("lui", mcu.instruction);
     }
@@ -119,6 +125,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("01", mcu.ALUOp);
         assertEquals("branch", mcu.instruction);
     }
@@ -135,6 +142,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("01", mcu.ALUOp);
         assertEquals("branch", mcu.instruction);
     }
@@ -151,6 +159,7 @@ public class MainControlUnitTest {
         assertEquals(1, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("00", mcu.ALUOp);
         assertEquals("lw", mcu.instruction);
     }
@@ -167,6 +176,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.RegWrite);
         assertEquals(0, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("00", mcu.ALUOp);
         assertEquals("sw", mcu.instruction);
     }
@@ -183,6 +193,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.RegWrite);
         assertEquals(1, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
         assertEquals("XX", mcu.ALUOp);
         assertEquals("j", mcu.instruction);
     }
@@ -190,15 +201,16 @@ public class MainControlUnitTest {
     @Test
     void testSetControlSignalJal() {
         mcu.set_control_signal("000011", "000000");
-        assertEquals(-1, mcu.RegDst);
+        assertEquals(2, mcu.RegDst);
         assertEquals(0, mcu.Branch);
         assertEquals(0, mcu.MemRead);
-        assertEquals(-1, mcu.MemtoReg);
+        assertEquals(2, mcu.MemtoReg);
         assertEquals(-1, mcu.ALUSrc);
         assertEquals(0, mcu.MemWrite);
         assertEquals(1, mcu.RegWrite);
         assertEquals(1, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
+        assertEquals(3, mcu.PCSrc);
         assertEquals("XX", mcu.ALUOp);
         assertEquals("jal", mcu.instruction);
     }
