@@ -112,15 +112,16 @@ public class MIPS {
         Set<Integer> valid_integer = Set.of(-1, 0, 1, 2);
         assert valid_integer.contains(get_MAIN_CONTROL_UNIT().MemtoReg) : "Invalid MemtoReg value";
 
-        if (get_MAIN_CONTROL_UNIT().MemtoReg == 0) {
+        if (get_MAIN_CONTROL_UNIT().MemtoReg == 0 || get_MAIN_CONTROL_UNIT().MemtoReg == -1) {
+            logger.info("MemtoReg is: " + get_MAIN_CONTROL_UNIT().MemtoReg);
             if (testing_mode) { return; }
-            write_back();
         }
         else if (get_MAIN_CONTROL_UNIT().MemtoReg == 1) {
             logger.info("waiting for implementation");
         }
         else if (get_MAIN_CONTROL_UNIT().MemtoReg == 2) {
             get_REG().write_data(this.PC + 4);
+            this.REGISTERS.put("$ra", get_REG().WRITE_DATA);
             logger.info("MemtoReg is 2, writing data of " + (this.PC + 4) + " to $ra");
         }
     }
@@ -134,36 +135,46 @@ public class MIPS {
         int read_data_2 = alusrc_mux();
         logger.info("read_data_1 (RS): " + read_data_1);
         logger.info("read_data_2 (Immediate or RT): " + read_data_2);
-
-        pcsrc_mux(read_data_1);
+        logger.info("alu signal: " + alu_signal);
 
         switch(alu_signal) {
             case "0010":    // addition
                 alu_result = read_data_1 + read_data_2;
-                logger.info("updated [add] register value: " + alu_result);
                 break;
             case "0110":    // subtraction
                 alu_result = read_data_1 - read_data_2;
-                logger.info("updated [sub] register value: " + alu_result);
                 break;
             case "0000":    // and
                 alu_result = read_data_1 & read_data_2;
-                logger.info("updated [and] register value: " + alu_result);
                 break;
             case "0001":    // or
                 alu_result = read_data_1 | read_data_2;
-                logger.info("updated [or] register value: " + alu_result);
                 break;
             case "0111":    // slt
                 alu_result = read_data_1 < read_data_2 ? 1 : 0;
-                logger.info("updated [slt] register value: " + alu_result);
                 break;
             case "XXXX":    // jr, don't care operations
-                logger.info("don't care in aluop");
-                if (testing_mode) { return; }
-                memory();
+                break;
+        }
+        logger.info("result: " + alu_result);
+
+        if (get_MAIN_CONTROL_UNIT().Branch == 1) {
+            logger.info("determining if branching");
+            if (alu_result == 0) {
+                logger.info("branching");
+                sign_extend();
+                logger.info("immediate value as integer: " + Integer.parseInt(this.IMMEDIATE));
+                logger.info("shifted immediate: " + (Integer.parseInt(this.IMMEDIATE) * 4));
+                this.JUMP_ADDRESS = (this.PC + 4) + ((Integer.parseInt(this.IMMEDIATE) * 4));
+                logger.info("calculated new jump address: " + this.JUMP_ADDRESS);
+                get_MAIN_CONTROL_UNIT().set_PCSRc(1);
+            }
+            else {
+                logger.info("not branching");
+            }
         }
 
+        pcsrc_mux(read_data_1);
         get_REG().write_data(alu_result);
         logger.info("Updating " + get_REG().WRITE_REGISTER + " with new value: " + alu_result);
 
@@ -180,6 +191,8 @@ public class MIPS {
                 this.PC += 4;
                 break;
             case 1: // branch logic
+                this.PC = this.JUMP_ADDRESS;
+                logger.info("new pc: " + this.PC);
                 break;
             case 2: // jr
                 this.PC = read_data_1;
@@ -187,7 +200,6 @@ public class MIPS {
                 break;
             case 3: // jal
                 this.PC += 4;
-                // pc has been updated through jump_mux()
                 break;
             default:
                 throw new IllegalStateException(get_MAIN_CONTROL_UNIT().PCSrc + " is not a valid PCSrc option [-1, 0, 1, 2, 3]");
@@ -195,7 +207,7 @@ public class MIPS {
     }
 
     int alusrc_mux() {
-        if (get_MAIN_CONTROL_UNIT().ALUSrc == 0) {  // r type
+        if (get_MAIN_CONTROL_UNIT().ALUSrc == 0) {
             return get_REG().read_data_2();
         }
         else {  // i type
@@ -214,14 +226,15 @@ public class MIPS {
         logger.info("retrieved opcode: " + this.OPCODE);
         logger.info("retrieved funct: " + this.FUNCT);
         logger.info("retrieved immediate: " + this.IMMEDIATE);
+        logger.info("current PC: " + this.PC);
 
         get_MAIN_CONTROL_UNIT().set_control_signal(this.OPCODE, this.FUNCT);
 
         if (get_MAIN_CONTROL_UNIT().Jump == 1) {
             this.TARGET = this.BIT32_INSTRUCTION.substring(6, 32);
             logger.info("retrieved target for jump : " + this.TARGET);
-            int pc_adder_alu_result = program_counter_adder();
-            jump_mux(pc_adder_alu_result);
+            //program_counter_adder();
+            jump_mux();
         }
 
         this.RS = this.BIT32_INSTRUCTION.substring(6, 11);
@@ -241,12 +254,11 @@ public class MIPS {
         execute();
     }
 
-    void jump_mux(int pc_adder) {
+    void jump_mux() {
         int parsed_target = Integer.parseInt(this.TARGET, 2);   // 26 bit immediate
         int word_aligned = parsed_target * 4;   // remember, when constructing the 32 bit, the last 2 insiginificant bits are chopped off, use this to word align it
-        int upper_bits = pc_adder & 0xF0000000; // the first hexadecimal doesn't matter, this represents the upper 4 bits of the pc + 4
+        int upper_bits = this.PC & 0xF0000000; // the first hexadecimal doesn't matter, this represents the upper 4 bits of the pc + 4
         this.JUMP_ADDRESS = upper_bits | word_aligned; // XXXXYYYYYYYYYYYYYYYYYYYYYYYYYYYY, combine them together
-
         logger.info("Parsed target: " + parsed_target);
         logger.info("Word aligned: 0x" + Integer.toHexString(word_aligned));
         logger.info("Upper bits: 0x" + Integer.toHexString(upper_bits));
@@ -256,11 +268,8 @@ public class MIPS {
         assert (this.JUMP_ADDRESS % 4) == 0 : "Jump address is not a multiple of four, incorrect jump address";
     }
 
-    int program_counter_adder() {
-        if (get_MAIN_CONTROL_UNIT().Jump == 1) {    // stack or queue later?
-            return this.PC + 4;
-        }
-        return 0;
+    void program_counter_adder() {
+        this.PC += 4;
     }
 
     void luictr_mux() {
@@ -300,29 +309,42 @@ public class MIPS {
         Set<Integer> valid_regdst = Set.of(1, 0, -1, 2);
         assert valid_regdst.contains(this.get_MAIN_CONTROL_UNIT().RegDst) : "Invalid RegDst: " + this.get_MAIN_CONTROL_UNIT().RegDst;
 
-        if (get_MAIN_CONTROL_UNIT().RegDst == 1) {
-            assert Mappings.BIT5_TO_REG.containsKey(this.RT);
-            assert Mappings.BIT5_TO_REG.containsKey(this.RD);
+        switch (get_MAIN_CONTROL_UNIT().RegDst) {
+            case -1:
+                assert Mappings.BIT5_TO_REG.containsKey(this.RT) : "regdst mux mapping error";
 
-            get_REG().read_register_2(get_register_value_from_bit5(this.RT));
-            get_REG().write_register(get_register_from_bit5(this.RD));
-            logger.info("read register 2 retrieved: " + get_register_from_bit5(this.RT));
-            logger.info("rtype with destination register (RD): " + get_register_from_bit5(this.RD));
-        }
-        else if (get_MAIN_CONTROL_UNIT().RegDst == 0){
-            assert Mappings.BIT5_TO_REG.containsKey(this.RT);
+                get_REG().read_register_2(get_register_value_from_bit5(this.RT));
+                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
+                break;
+            case 0:
+                assert Mappings.BIT5_TO_REG.containsKey(this.RT) : "regdst mux mapping error";
 
-            get_REG().write_register(get_register_from_bit5(this.RT));
-            logger.info("itype with destination register (RT): " + get_register_from_bit5(this.RT));
-        }
-        else if (get_MAIN_CONTROL_UNIT().RegDst == 2) {
-            get_REG().write_register("$ra");
-            logger.info("jtype with destination register $ra for jal");
+                get_REG().write_register(get_register_from_bit5(this.RT));
+                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
+                break;
+            case 1:
+                assert Mappings.BIT5_TO_REG.containsKey(this.RT) : "regdst mux mapping error";
+                assert Mappings.BIT5_TO_REG.containsKey(this.RD) : "regdst mux mapping error";
+
+                get_REG().read_register_2(get_register_value_from_bit5(this.RT));
+                get_REG().write_register(get_register_from_bit5(this.RD));
+                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
+                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RD));
+                break;
+            case 2:
+                assert Mappings.BIT5_TO_REG.containsKey(this.RS) : "regdst mux mapping error";
+
+                get_REG().write_register("$ra");
+                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": getting $ra for jal");
+                break;
+            default:
+                throw new IllegalStateException("Invalid RegDst in RegDst mux: " + get_MAIN_CONTROL_UNIT().RegDst);
         }
     }
 
     void instruction_memory() {
         String mips_instruction = read_address();
+        // -- MIGHT HAVE TO ASSIGN PC TO READ_ADDRESS.KEY OR SOMETHING
         StringBuilder instruction_in_bit32 = new StringBuilder();
 
         for (int curr_char_ind = 0; curr_char_ind < mips_instruction.length(); curr_char_ind++) {

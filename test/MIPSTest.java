@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -190,7 +189,27 @@ public class MIPSTest {
 
     @Test
     void testWriteBackITypeBeq() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "112A0001");  // beq $t1, $t2, equals or beq $t9, $10, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t2", 2);
+        mips.BIT32_INSTRUCTION = "00010001001010100000000000000001";
+        mips.PC = 0x0040000c;
 
+        Map<String, Integer> initial_registers = new HashMap<>(mips.REGISTERS);
+
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+        mips.write_back();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+
+        assertEquals(0x00400014, mips.PC);
     }
 
     @Test
@@ -459,7 +478,19 @@ public class MIPSTest {
 
     @Test
     void testMemoryITypeBeq() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "112A0001");  // beq $t1, $t2, equals or beq $t9, $10, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t2", 2);
+        mips.BIT32_INSTRUCTION = "00010001001010100000000000000001";
 
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
     }
 
     @Test
@@ -535,7 +566,8 @@ public class MIPSTest {
     void testMemoryRTypeSlt() {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400000, "016A702A"); // slt $t6, $t3, $t2
-        mips.REGISTERS.put("$t6", 0x00000000);
+        mips.REGISTERS.put("$t6", 0x00000000);        int read_data_1 = mips.get_REG().read_data_1();
+        int read_data_2 = mips.get_REG().read_data_2();
         mips.REGISTERS.put("$t3", 0x00000004);
         mips.REGISTERS.put("$t2", 0x00000008);
         mips.BIT32_INSTRUCTION = "00000001011010100111000000101010";
@@ -578,21 +610,12 @@ public class MIPSTest {
         mips.testing_mode = true;
         mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
         mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
+        mips.REGISTERS.put("$ra", 0x00400008);
+        mips.PC = 0x00400014;
         mips.instruction_decode();
         mips.execute();
 
         assertEquals(2, mips.get_MAIN_CONTROL_UNIT().PCSrc);
-    }
-
-    @Test
-    void testPCSrcMuxJr() {
-        mips.testing_mode = true;
-        mips.INSTRUCTIONS.put(0x00400014, "0x03e00008");  // jr $ra
-        mips.BIT32_INSTRUCTION = "00000011111000000000000000001000";
-        mips.REGISTERS.put("$ra", 0x00400008);
-        mips.instruction_decode();
-        mips.execute();
-
         assertEquals(0x00400008, mips.PC);
     }
 
@@ -669,7 +692,20 @@ public class MIPSTest {
 
     @Test
     void testExecuteITypeBeq() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "112A0001");  // beq $t1, $t2, equals or beq $t9, $10, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t2", 2);
+        mips.BIT32_INSTRUCTION = "00010001001010100000000000000001";
+        mips.PC = 0x0040000c;
 
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(2, mips.get_REG().read_data_1());
+        assertEquals(2, mips.get_REG().read_data_2());
+        assertEquals(0, mips.get_REG().WRITE_DATA);
+        assertEquals(0x00400014, mips.PC);
     }
 
     @Test
@@ -799,7 +835,7 @@ public class MIPSTest {
         mips.instruction_decode();
         assertEquals("00000100000000000000000011", mips.TARGET);
 
-        mips.jump_mux(mips.PC + 4);
+        mips.jump_mux();
         assertEquals(0x0040000C, mips.JUMP_ADDRESS);
     }
 
@@ -1035,12 +1071,40 @@ public class MIPSTest {
 
     @Test
     void testInstructionDecodeITypeBeq() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "112A0001");  // beq $t1, $t2, equals or beq $t9, $10, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t2", 2);
+        mips.BIT32_INSTRUCTION = "00010001001010100000000000000001";
 
+        mips.instruction_decode();
+        assertEquals("000100", mips.BIT32_INSTRUCTION.substring(0, 6));
+        assertEquals("0000000000000001", mips.BIT32_INSTRUCTION.substring(16, 32)); // offset
+
+        // are the control signals correctly set?
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().RegDst);
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().Branch);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().ALUSrc);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Jump);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().PCSrc);
+        assertEquals("01", mips.get_MAIN_CONTROL_UNIT().ALUOp);
+
+        // what did the ALU yield?
+        assertEquals("0110", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().get_ALU_control_signal());
+
+        // comparison between rs and rt, what are their values?
+        assertEquals(2, mips.get_REG().READ_REGISTER_1);
+        assertEquals(2, mips.get_REG().READ_REGISTER_2);
     }
 
     @Test
     void testInstructionDecodeITypeBne() {
-
+        mips.testing_mode = true;
     }
 
     @Test
@@ -1064,6 +1128,7 @@ public class MIPSTest {
         assertEquals(1, mips.get_MAIN_CONTROL_UNIT().RegWrite);
         assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Jump);
         assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().PCSrc);
         assertEquals("00", mips.get_MAIN_CONTROL_UNIT().ALUOp);
 
         // what did the ALU yield?

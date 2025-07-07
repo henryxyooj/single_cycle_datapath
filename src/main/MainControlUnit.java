@@ -218,6 +218,7 @@ public class MainControlUnit {
 
     String get_instruction() { return this.instruction; }
     String get_ALUOp() { return this.ALUOp; }
+    void set_PCSRc(int value) { this.PCSrc = value; }
     ALUControlUnit get_ALU_CONTROL_UNIT() { return this.ALU_CONTROL; }
 }
 
@@ -252,7 +253,7 @@ class ALUControlUnit {
     String get_rtype_signal(String funct) {  // desired ALU action
         return switch (funct) {
             case "100000" ->  // add
-                    "0010";
+                    "0010"; // alu control inputs
             case "100001" ->  // addu
                     "0010";
             case "100010" ->  // sub
