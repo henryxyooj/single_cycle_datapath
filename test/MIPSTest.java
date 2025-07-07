@@ -757,6 +757,13 @@ public class MIPSTest {
 
     @Test
     void testExecuteITypeLw() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x00400000, "8E6C000F"); // lw $t4, 0xffff($s3)
+        mips.REGISTERS.put("$s3", 16);
+        mips.BIT32_INSTRUCTION = "10001110011011000000000000001111";
+        mips.instruction_decode();
+        mips.execute();
+
 
     }
 
