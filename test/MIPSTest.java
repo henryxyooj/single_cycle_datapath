@@ -214,7 +214,26 @@ public class MIPSTest {
 
     @Test
     void testWriteBackITypeBne() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "152c0001");  // bne $t1, $t4, equals or bne $t9, $12, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t4", 4);
+        mips.BIT32_INSTRUCTION = "00010101001011000000000000000001";
+        mips.PC = 0x0040000c;
 
+        Map<String, Integer> initial_registers = new HashMap<>(mips.REGISTERS);
+
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+
+        assertEquals(0x00400014, mips.PC);
     }
 
     @Test
@@ -495,7 +514,19 @@ public class MIPSTest {
 
     @Test
     void testMemoryITypeBne() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "152c0001");  // bne $t1, $t4, equals or bne $t9, $12, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t4", 4);
+        mips.BIT32_INSTRUCTION = "00010101001011000000000000000001";
 
+        mips.instruction_decode();
+        mips.execute();
+        mips.memory();
+
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
     }
 
     @Test
@@ -704,13 +735,24 @@ public class MIPSTest {
 
         assertEquals(2, mips.get_REG().read_data_1());
         assertEquals(2, mips.get_REG().read_data_2());
-        assertEquals(0, mips.get_REG().WRITE_DATA);
         assertEquals(0x00400014, mips.PC);
     }
 
     @Test
     void testExecuteITypeBne() {
+        mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "152c0001");  // bne $t1, $t4, equals or bne $t9, $12, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t4", 4);
+        mips.BIT32_INSTRUCTION = "00010101001011000000000000000001";
+        mips.PC = 0x0040000c;
 
+        mips.instruction_decode();
+        mips.execute();
+
+        assertEquals(2, mips.get_REG().read_data_1());
+        assertEquals(4, mips.get_REG().read_data_2());
+        assertEquals(0x00400014, mips.PC);
     }
 
     @Test
@@ -1105,6 +1147,34 @@ public class MIPSTest {
     @Test
     void testInstructionDecodeITypeBne() {
         mips.testing_mode = true;
+        mips.INSTRUCTIONS.put(0x0040000c, "152c0001");  // bne $t1, $t4, equals or bne $t9, $12, 0x00000001
+        mips.REGISTERS.put("$t1", 2);
+        mips.REGISTERS.put("$t4", 4);
+        mips.BIT32_INSTRUCTION = "00010101001011000000000000000001";
+
+        mips.instruction_decode();
+        assertEquals("000101", mips.BIT32_INSTRUCTION.substring(0, 6));
+        assertEquals("0000000000000001", mips.BIT32_INSTRUCTION.substring(16, 32)); // offset
+
+        // are the control signals correctly set?
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().RegDst);
+        assertEquals(1, mips.get_MAIN_CONTROL_UNIT().Branch);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemRead);
+        assertEquals(-1, mips.get_MAIN_CONTROL_UNIT().MemtoReg);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().ALUSrc);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().MemWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().RegWrite);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().Jump);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().LUICtr);
+        assertEquals(0, mips.get_MAIN_CONTROL_UNIT().PCSrc);
+        assertEquals("01", mips.get_MAIN_CONTROL_UNIT().ALUOp);
+
+        // what did the ALU yield?
+        assertEquals("0110", mips.get_MAIN_CONTROL_UNIT().get_ALU_CONTROL_UNIT().get_ALU_control_signal());
+
+        // comparison between rs and rt, what are their values?
+        assertEquals(2, mips.get_REG().READ_REGISTER_1);
+        assertEquals(4, mips.get_REG().READ_REGISTER_2);
     }
 
     @Test

@@ -136,6 +136,20 @@ public class MainControlUnit {
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
                 break;
             case "000100": // beq
+                this.RegDst = -1;
+                this.Branch = 1;
+                this.MemRead = 0;
+                this.MemtoReg = -1;
+                this.ALUSrc = 0;
+                this.MemWrite = 0;
+                this.RegWrite = 0;
+                this.Jump = 0;
+                this.LUICtr = 0;
+                this.PCSrc = 0;
+                this.ALUOp = "01";  // ALU operation determined by funct
+                this.instruction = "beq";
+                this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
+                break;
             case "000101": // bne
                 this.RegDst = -1;
                 this.Branch = 1;
@@ -148,7 +162,7 @@ public class MainControlUnit {
                 this.LUICtr = 0;
                 this.PCSrc = 0;
                 this.ALUOp = "01";  // ALU operation determined by funct
-                this.instruction = "branch";
+                this.instruction = "bne";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
                 break;
             case "100011": // lw

@@ -156,16 +156,17 @@ public class MIPS {
             case "XXXX":    // jr, don't care operations
                 break;
         }
-        logger.info("result: " + alu_result);
+        logger.info("alu_result: " + alu_result);
 
         if (get_MAIN_CONTROL_UNIT().Branch == 1) {
             logger.info("determining if branching");
-            if (alu_result == 0) {
+            if ((alu_result == 0 && get_MAIN_CONTROL_UNIT().instruction.equals("beq")) ||
+                    (alu_result != 0 && get_MAIN_CONTROL_UNIT().instruction.equals("bne"))) {
                 logger.info("branching");
                 sign_extend();
-                logger.info("immediate value as integer: " + Integer.parseInt(this.IMMEDIATE));
-                logger.info("shifted immediate: " + (Integer.parseInt(this.IMMEDIATE) * 4));
-                this.JUMP_ADDRESS = (this.PC + 4) + ((Integer.parseInt(this.IMMEDIATE) * 4));
+                logger.info("immediate value as integer: " + Integer.parseInt(this.IMMEDIATE, 2));
+                logger.info("shifted immediate: " + (Integer.parseInt(this.IMMEDIATE, 2) * 4));
+                this.JUMP_ADDRESS = (this.PC + 4) + ((Integer.parseInt(this.IMMEDIATE, 2) * 4));
                 logger.info("calculated new jump address: " + this.JUMP_ADDRESS);
                 get_MAIN_CONTROL_UNIT().set_PCSRc(1);
             }
