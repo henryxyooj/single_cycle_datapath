@@ -23,6 +23,7 @@ public class MIPS {
 
     final MainControlUnit MAIN_CONTROL_UNIT;
     final Registers REG;
+    final DataMemory DATA_MEMORY;
 
     final Map<String, Integer> REGISTERS;
     final Map<Integer, String> INSTRUCTIONS;
@@ -30,7 +31,7 @@ public class MIPS {
     final Map<Integer, String> MEMORY_AND_WORDS;
 
     int PC;
-    int MEMORY;
+    int MEMORY_ADDRESS;
     String BIT32_INSTRUCTION;
     String OPCODE;
     String FUNCT;
@@ -63,8 +64,9 @@ public class MIPS {
 
         this.MAIN_CONTROL_UNIT = new MainControlUnit();
         this.REG = new Registers();
+        this.DATA_MEMORY = new DataMemory();
 
-        this.MEMORY = DATA_START_ADDRESS;
+        this.MEMORY_ADDRESS = DATA_START_ADDRESS;
         this.MEMORY_AND_WORDS = new HashMap<>();    //(MEM ADDRESS [0X1000100], WORD [64e50054])
 
         this.PC = TEXT_START_ADDRESS;
@@ -99,12 +101,15 @@ public class MIPS {
     void memory() {
         if (get_MAIN_CONTROL_UNIT().MemWrite == 0 && get_MAIN_CONTROL_UNIT().MemRead == 0) {
             memtoreg_mux();
-            if (testing_mode) { return; }
         }
         else {
-            logger.info("unsupported operations for now");
+            logger.info("lw instruction");
+            get_DATA_MEMORY().read_address(get_REG().WRITE_DATA);
+            get_DATA_MEMORY().read_data(MEMORY_AND_WORDS);   // read_data = memory[address]
+            memtoreg_mux();
         }
 
+        if (testing_mode) { return; }
         write_back();
     }
 
@@ -114,10 +119,11 @@ public class MIPS {
 
         if (get_MAIN_CONTROL_UNIT().MemtoReg == 0 || get_MAIN_CONTROL_UNIT().MemtoReg == -1) {
             logger.info("MemtoReg is: " + get_MAIN_CONTROL_UNIT().MemtoReg);
-            if (testing_mode) { return; }
         }
         else if (get_MAIN_CONTROL_UNIT().MemtoReg == 1) {
-            logger.info("waiting for implementation");
+            logger.info("MemtoReg is 1: " + get_MAIN_CONTROL_UNIT().MemtoReg);
+            get_REG().write_data(get_DATA_MEMORY().READ_DATA);
+            logger.info("retrieving DATA_MEMORY.READ_DATA: " + get_DATA_MEMORY().READ_DATA);
         }
         else if (get_MAIN_CONTROL_UNIT().MemtoReg == 2) {
             get_REG().write_data(this.PC + 4);
@@ -159,19 +165,14 @@ public class MIPS {
         logger.info("alu_result: " + alu_result);
 
         if (get_MAIN_CONTROL_UNIT().Branch == 1) {
-            logger.info("determining if branching");
             if ((alu_result == 0 && get_MAIN_CONTROL_UNIT().instruction.equals("beq")) ||
                     (alu_result != 0 && get_MAIN_CONTROL_UNIT().instruction.equals("bne"))) {
-                logger.info("branching");
                 sign_extend();
                 logger.info("immediate value as integer: " + Integer.parseInt(this.IMMEDIATE, 2));
                 logger.info("shifted immediate: " + (Integer.parseInt(this.IMMEDIATE, 2) * 4));
                 this.JUMP_ADDRESS = (this.PC + 4) + ((Integer.parseInt(this.IMMEDIATE, 2) * 4));
                 logger.info("calculated new jump address: " + this.JUMP_ADDRESS);
                 get_MAIN_CONTROL_UNIT().set_PCSRc(1);
-            }
-            else {
-                logger.info("not branching");
             }
         }
 
@@ -389,8 +390,8 @@ public class MIPS {
                     throw new IllegalArgumentException("Invalid memory format: " + currline);
                 }
                 // stores the memory address with its associated value: (0x10010000, 0x65746e45)
-                this.MEMORY_AND_WORDS.put(this.MEMORY, currline);
-                this.MEMORY += 4;
+                this.MEMORY_AND_WORDS.put(this.MEMORY_ADDRESS, currline);
+                this.MEMORY_ADDRESS += 4;
             }
         }
     }
@@ -415,6 +416,7 @@ public class MIPS {
     Registers get_REG() { return this.REG; }
     MainControlUnit get_MAIN_CONTROL_UNIT() { return this.MAIN_CONTROL_UNIT; }
     ALUControlUnit get_ALU() { return this.MAIN_CONTROL_UNIT.ALU_CONTROL; }
+    DataMemory get_DATA_MEMORY() { return this.DATA_MEMORY; }
 
     void set_register_value_with_bit5(String register_in_bit5, int updated_register_value) { this.REGISTERS.put(Mappings.BIT5_TO_REG.get(register_in_bit5), updated_register_value); }
     int get_register_value_from_bit5(String register_in_bit5) { return this.REGISTERS.get(Mappings.BIT5_TO_REG.get(register_in_bit5)); }
