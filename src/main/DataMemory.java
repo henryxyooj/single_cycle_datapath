@@ -14,7 +14,7 @@ public class DataMemory {
     }
 
     void read_address(int alu_result) {
-        assert alu_result > 0x10010000 : "Calculated alu result is below memory start address: 0x10010000";
+        assert alu_result >= 0x10010000 : "Calculated alu result is below memory start address: 0x10010000";
 
         this.READ_ADDRESS = alu_result;
     }
@@ -40,5 +40,17 @@ public class DataMemory {
         else {
             throw new IllegalArgumentException("Address doesn't exist in memory");
         }
+    }
+
+    void write_address(int alu_result) {
+        assert alu_result >= 10010000 : "Calculated alu result is below memory start address: 0x10010000";
+
+        this.WRITE_ADDRESS = alu_result;
+    }
+
+    void write_data(int rt_val, Map<Integer, String> MEMORY_AND_WORDS) {
+        this.READ_DATA = rt_val;
+        String READ_DATA_str_conversion = String.format("0x%08X", this.READ_DATA);
+        MEMORY_AND_WORDS.put(this.WRITE_ADDRESS, READ_DATA_str_conversion);
     }
 }

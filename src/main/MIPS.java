@@ -99,13 +99,22 @@ public class MIPS {
     }
 
     void memory() {
+        Set<Integer> valid_mem_write = Set.of(-1, 0, 1);
+        Set<Integer> valid_mem_read = Set.of(-1, 0, 1);
+        assert valid_mem_write.contains(get_MAIN_CONTROL_UNIT().MemWrite) : "MemWrite value is raising an issue";
+        assert valid_mem_read.contains(get_MAIN_CONTROL_UNIT().MemRead) : "MemRead value is raising an issue";
+
         if (get_MAIN_CONTROL_UNIT().MemWrite == 0 && get_MAIN_CONTROL_UNIT().MemRead == 0) {
             memtoreg_mux();
         }
-        else {
-            logger.info("lw instruction");
+        else if (get_MAIN_CONTROL_UNIT().MemWrite == 0 && get_MAIN_CONTROL_UNIT().MemRead == 1) { // lw
             get_DATA_MEMORY().read_address(get_REG().WRITE_DATA);
-            get_DATA_MEMORY().read_data(MEMORY_AND_WORDS);   // read_data = memory[address]
+            get_DATA_MEMORY().read_data(this.MEMORY_AND_WORDS);   // read_data = memory[address]
+            memtoreg_mux();
+        }
+        else if (get_MAIN_CONTROL_UNIT().MemWrite == 1 && get_MAIN_CONTROL_UNIT().MemRead == 0) { // sw
+            get_DATA_MEMORY().write_address(get_REG().WRITE_DATA);
+            get_DATA_MEMORY().write_data(get_REG().READ_REGISTER_2, this.MEMORY_AND_WORDS);
             memtoreg_mux();
         }
 
@@ -209,6 +218,9 @@ public class MIPS {
     }
 
     int alusrc_mux() {
+        Set<Integer> valid_alusrc = Set.of(-1, 0, 1);
+        assert valid_alusrc.contains(get_MAIN_CONTROL_UNIT().ALUSrc) : "ALUSrc value is invalid";
+
         if (get_MAIN_CONTROL_UNIT().ALUSrc == 0) {
             return get_REG().read_data_2();
         }
