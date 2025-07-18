@@ -391,7 +391,6 @@ public class MIPS {
     void program_counter() {
         while (this.PC < this.INSTRUCTIONS.size() * 4 + TEXT_START_ADDRESS) {
             if (get_MAIN_CONTROL_UNIT().Jump != 1) {
-                program_counter_adder();
                 instruction_memory();
             }
             else if (get_MAIN_CONTROL_UNIT().Jump == 1) {

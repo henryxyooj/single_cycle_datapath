@@ -4,7 +4,7 @@ public class driver {
     public static void main(String[] args) throws IOException {
 
         String data_file = "/home/henry-xiong/IdeaProjects/single_cycle_datapath/src/asm_text_data_files/EvenOrOdd.data";
-        String text_file = "/home/henry-xiong/IdeaProjects/single_cycle_datapath/src/asm_text_data_files/EvenOrOdd.text";
+        String text_file = "/home/henry-xiong/IdeaProjects/single_cycle_datapath/src/asm_text_data_files/basic_rtype_test.text";
 
         MIPS isa = new MIPS();
         start_cycle(isa, data_file, text_file);
