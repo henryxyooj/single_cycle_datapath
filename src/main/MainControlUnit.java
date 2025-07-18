@@ -44,6 +44,20 @@ public class MainControlUnit {
                     this.ALUOp = "XX";  // ALU operation determined by funct
                     this.instruction = "jr";
                 }
+                else if (funct.equals("001100")) {
+                    this.RegDst = 0;
+                    this.Branch = 0;
+                    this.MemRead = 0;
+                    this.MemtoReg = 0;
+                    this.ALUSrc = 0;
+                    this.MemWrite = 0;
+                    this.RegWrite = 0;
+                    this.Jump = 0;
+                    this.LUICtr = 0;
+                    this.PCSrc = 0;
+                    this.ALUOp = "XX";  // ALU operation determined by funct
+                    this.instruction = "syscall";
+                }
                 else {
                     this.RegDst = 1;
                     this.Branch = 0;
@@ -56,7 +70,7 @@ public class MainControlUnit {
                     this.LUICtr = 0;
                     this.PCSrc = 0;
                     this.ALUOp = "10";  // ALU operation determined by funct
-                    this.instruction = "rtype or syscall";
+                    this.instruction = "rtype";
                 }
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);
                 break;

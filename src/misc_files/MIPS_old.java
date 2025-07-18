@@ -426,12 +426,12 @@ public class MIPS {
             word = isa.MEMORY_AND_WORDS.get(memoryAddress);  // words inside the memory address
 
             if (word == null) isNull = true;
-            for (int i = 0; i < word.length(); i += 2) {
+            for (int i = 0; i < word.length(); i += 2) {    // this for loop extracts in reverse every 2 chars
                 String twoChars = word.substring(i, i + 2);
-                hexToDec.insert(0, twoChars);
+                hexToDec.insert(0, twoChars);Hello, world!
             }
 
-            for (int i = 0; i < hexToDec.length(); i += 2) {
+            for (int i = 0; i < hexToDec.length(); i += 2) { // this for loop converts each 2 chars into ascii
                 String twoChars = hexToDec.substring(i, i + 2);
                 if (twoChars.equals("00")) {
                     isNull = true;

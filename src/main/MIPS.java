@@ -24,6 +24,7 @@ public class MIPS {
     final MainControlUnit MAIN_CONTROL_UNIT;
     final Registers REG;
     final DataMemory DATA_MEMORY;
+    final Kernel KERNEL;
 
     final Map<String, Integer> REGISTERS;
     final Map<Integer, String> INSTRUCTIONS;
@@ -65,6 +66,7 @@ public class MIPS {
         this.MAIN_CONTROL_UNIT = new MainControlUnit();
         this.REG = new Registers();
         this.DATA_MEMORY = new DataMemory();
+        this.KERNEL = new Kernel();
 
         this.MEMORY_ADDRESS = DATA_START_ADDRESS;
         this.MEMORY_AND_WORDS = new HashMap<>();    //(MEM ADDRESS [0X1000100], WORD [64e50054])
@@ -87,6 +89,9 @@ public class MIPS {
     }
 
     void write_back() {
+        Set<Integer> valid_regwrite = Set.of(-1, 0, 1);
+        assert valid_regwrite.contains(get_MAIN_CONTROL_UNIT().RegWrite) : "RegWrite value seems to be incorrect";
+
         if (get_MAIN_CONTROL_UNIT().RegWrite == 1) {
             set_register_value_with_bit5(Mappings.REG_TO_BIT5.get(get_REG().WRITE_REGISTER), get_REG().WRITE_DATA);
             logger.info("storing into hashmap: reg: " + get_REG().WRITE_REGISTER + ", val: " + get_REG().WRITE_DATA);
@@ -243,6 +248,12 @@ public class MIPS {
         logger.info("current PC: " + this.PC);
 
         get_MAIN_CONTROL_UNIT().set_control_signal(this.OPCODE, this.FUNCT);
+
+        logger.info("retrieved instruction: " + get_MAIN_CONTROL_UNIT().get_instruction());
+
+        if (get_MAIN_CONTROL_UNIT().get_instruction().equals("syscall")) {
+            this.KERNEL.handler(this.REGISTERS, this.MEMORY_AND_WORDS);
+        }
 
         if (get_MAIN_CONTROL_UNIT().Jump == 1) {
             this.TARGET = this.BIT32_INSTRUCTION.substring(6, 32);
@@ -434,5 +445,5 @@ public class MIPS {
     int get_register_value_from_bit5(String register_in_bit5) { return this.REGISTERS.get(Mappings.BIT5_TO_REG.get(register_in_bit5)); }
     String get_register_from_bit5(String register_in_bit5) { return Mappings.BIT5_TO_REG.get(register_in_bit5); }
     String read_address() { return this.INSTRUCTIONS.get(this.PC); }
-    void print_pc_and_registers() { System.out.println(this.PC_AND_REGISTERS.get(this.PC)); }
+    void print_pc_and_registers() { System.out.println("PC: " + this.PC + " " + this.PC_AND_REGISTERS.get(this.PC)); }
 }

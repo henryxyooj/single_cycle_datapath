@@ -25,7 +25,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.LUICtr);
         assertEquals(0, mcu.PCSrc);
         assertEquals("10", mcu.ALUOp);
-        assertEquals("rtype or syscall", mcu.instruction);
+        assertEquals("rtype", mcu.instruction);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.LUICtr);
         assertEquals(0, mcu.PCSrc);
         assertEquals("01", mcu.ALUOp);
-        assertEquals("branch", mcu.instruction);
+        assertEquals("beq", mcu.instruction);
     }
 
     @Test
@@ -144,7 +144,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.LUICtr);
         assertEquals(0, mcu.PCSrc);
         assertEquals("01", mcu.ALUOp);
-        assertEquals("branch", mcu.instruction);
+        assertEquals("bne", mcu.instruction);
     }
 
     @Test
@@ -213,6 +213,23 @@ public class MainControlUnitTest {
         assertEquals(3, mcu.PCSrc);
         assertEquals("XX", mcu.ALUOp);
         assertEquals("jal", mcu.instruction);
+    }
+
+    @Test
+    void testSetControlSignalSyscall() {
+        mcu.set_control_signal("000000", "001100");
+        assertEquals(0, mcu.RegDst);
+        assertEquals(0, mcu.Branch);
+        assertEquals(0, mcu.MemRead);
+        assertEquals(0, mcu.MemtoReg);
+        assertEquals(0, mcu.ALUSrc);
+        assertEquals(0, mcu.MemWrite);
+        assertEquals(0, mcu.RegWrite);
+        assertEquals(0, mcu.Jump);
+        assertEquals(0, mcu.LUICtr);
+        assertEquals(0, mcu.PCSrc);
+        assertEquals("XX", mcu.ALUOp);
+        assertEquals("syscall", mcu.instruction);
     }
 
     @Test

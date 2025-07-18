@@ -3,8 +3,8 @@ import java.io.IOException;
 public class driver {
     public static void main(String[] args) throws IOException {
 
-        String data_file = "C:\\Users\\Henry\\IdeaProjects\\single_cycle_datapath\\src\\basic_instructions.data";
-        String text_file = "C:\\Users\\Henry\\IdeaProjects\\single_cycle_datapath\\src\\jump.text";
+        String data_file = "/home/henry-xiong/IdeaProjects/single_cycle_datapath/src/asm_text_data_files/EvenOrOdd.data";
+        String text_file = "/home/henry-xiong/IdeaProjects/single_cycle_datapath/src/asm_text_data_files/EvenOrOdd.text";
 
         MIPS isa = new MIPS();
         start_cycle(isa, data_file, text_file);
