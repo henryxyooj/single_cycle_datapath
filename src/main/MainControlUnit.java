@@ -219,7 +219,7 @@ public class MainControlUnit {
                 this.RegWrite = 0;
                 this.Jump = 1;
                 this.LUICtr = 0;
-                this.PCSrc = 0;
+                this.PCSrc = 3;
                 this.ALUOp = "XX";  // ALU adds base + offset
                 this.instruction = "j";
                 this.ALU_CONTROL.set_ALU_control_signals(this.ALUOp, opcode, funct);

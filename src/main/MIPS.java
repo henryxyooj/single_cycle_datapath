@@ -17,6 +17,8 @@ public class MIPS {
         logger.addHandler(handler);
     }
     boolean testing_mode = false;
+    boolean testing_one_instruction = false;
+    boolean output_stream_mode = false;
 
     static final int DATA_START_ADDRESS = 0x10010000;
     static final int TEXT_START_ADDRESS = 0x00400000;
@@ -92,15 +94,20 @@ public class MIPS {
         Set<Integer> valid_regwrite = Set.of(-1, 0, 1);
         assert valid_regwrite.contains(get_MAIN_CONTROL_UNIT().RegWrite) : "RegWrite value seems to be incorrect";
 
-        if (get_MAIN_CONTROL_UNIT().RegWrite == 1) {
-            set_register_value_with_bit5(Mappings.REG_TO_BIT5.get(get_REG().WRITE_REGISTER), get_REG().WRITE_DATA);
-            logger.info("storing into hashmap: reg: " + get_REG().WRITE_REGISTER + ", val: " + get_REG().WRITE_DATA);
-            this.PC_AND_REGISTERS.put(this.PC, this.REGISTERS.toString());
-            print_pc_and_registers();
+        switch (get_MAIN_CONTROL_UNIT().RegWrite){
+            case -1, 0:
+                break;
+            case 1:
+                logger.info("write_register: " + get_register_from_bit5(get_REG().WRITE_REGISTER));
+                logger.info("write_data: " + get_REG().WRITE_DATA);
+                set_register_value_with_bit5(Mappings.REG_TO_BIT5.get(get_REG().WRITE_REGISTER), get_REG().WRITE_DATA);
+                logger.info("storing into hashmap: reg: " + get_REG().WRITE_REGISTER + ", val: " + get_REG().WRITE_DATA);
+                this.PC_AND_REGISTERS.put(this.PC, this.REGISTERS.toString());
+                break;
+            default:
+                throw new IllegalStateException("RegWrite value seems to be incorrect");
         }
-        else {
-            logger.info("write back skipped, RegWrite = 0");
-        }
+        if (testing_one_instruction) { return; }
     }
 
     void memory() {
@@ -110,18 +117,20 @@ public class MIPS {
         assert valid_mem_read.contains(get_MAIN_CONTROL_UNIT().MemRead) : "MemRead value is raising an issue";
 
         if (get_MAIN_CONTROL_UNIT().MemWrite == 0 && get_MAIN_CONTROL_UNIT().MemRead == 0) {
-            memtoreg_mux();
+            logger.info("MemWrite and MemRead is 0");
         }
         else if (get_MAIN_CONTROL_UNIT().MemWrite == 0 && get_MAIN_CONTROL_UNIT().MemRead == 1) { // lw
             get_DATA_MEMORY().read_address(get_REG().WRITE_DATA);
             get_DATA_MEMORY().read_data(this.MEMORY_AND_WORDS);   // read_data = memory[address]
-            memtoreg_mux();
+
         }
         else if (get_MAIN_CONTROL_UNIT().MemWrite == 1 && get_MAIN_CONTROL_UNIT().MemRead == 0) { // sw
             get_DATA_MEMORY().write_address(get_REG().WRITE_DATA);
             get_DATA_MEMORY().write_data(get_REG().READ_REGISTER_2, this.MEMORY_AND_WORDS);
-            memtoreg_mux();
         }
+
+        memtoreg_mux();
+        pcsrc_mux();
 
         if (testing_mode) { return; }
         write_back();
@@ -140,9 +149,34 @@ public class MIPS {
             logger.info("retrieving DATA_MEMORY.READ_DATA: " + get_DATA_MEMORY().READ_DATA);
         }
         else if (get_MAIN_CONTROL_UNIT().MemtoReg == 2) {
+            logger.info("this.PC: " + this.PC);
             get_REG().write_data(this.PC + 4);
-            this.REGISTERS.put("$ra", get_REG().WRITE_DATA);
             logger.info("MemtoReg is 2, writing data of " + (this.PC + 4) + " to $ra");
+        }
+    }
+
+    void pcsrc_mux() {
+        Set<Integer> valid_pcsrc = Set.of(-1, 0, 1, 2, 3);
+        assert valid_pcsrc.contains(get_MAIN_CONTROL_UNIT().PCSrc) : "PCSrc is invalid";
+
+        switch (get_MAIN_CONTROL_UNIT().PCSrc) {
+            case 0: // default path
+                this.PC += 4;
+                break;
+            case 1: // branch logic
+                this.PC = this.JUMP_ADDRESS;
+                logger.info("new pc: " + this.PC);
+                break;
+            case 2: // jr
+                this.PC = get_REG().READ_DATA_1;
+                logger.info("updated pc with read_data_1 " + get_REG().READ_DATA_1);
+                break;
+            case 3: // jal
+                this.PC = this.JUMP_ADDRESS;
+                logger.info("assigning this.PC to jump address for jal");
+                break;
+            default:
+                throw new IllegalStateException(get_MAIN_CONTROL_UNIT().PCSrc + " is not a valid PCSrc option [-1, 0, 1, 2, 3]");
         }
     }
 
@@ -173,8 +207,10 @@ public class MIPS {
             case "0111":    // slt
                 alu_result = read_data_1 < read_data_2 ? 1 : 0;
                 break;
-            case "XXXX":    // jr, don't care operations
+            case "XXXX":    // jr, lui, don't care operations
                 break;
+            default:
+                throw new IllegalStateException("alu_signal not implemented");
         }
         logger.info("alu_result: " + alu_result);
 
@@ -190,48 +226,30 @@ public class MIPS {
             }
         }
 
-        pcsrc_mux(read_data_1);
-        get_REG().write_data(alu_result);
-        logger.info("Updating " + get_REG().WRITE_REGISTER + " with new value: " + alu_result);
+        if (!alu_signal.equals("XXXX")) {
+            get_REG().write_data(alu_result);
+            logger.info("Updating " + get_REG().WRITE_REGISTER + " with new value: " + alu_result);
+        }
 
         if (testing_mode) { return; }
         memory();
-    }
-
-    void pcsrc_mux(int read_data_1) {   // the calculations are already done, this mux selects the final source of the PC from multiple options
-        Set<Integer> valid_pcsrc = Set.of(-1, 0, 1, 2, 3);
-        assert valid_pcsrc.contains(get_MAIN_CONTROL_UNIT().PCSrc) : "PCSrc is invalid";
-
-        switch (get_MAIN_CONTROL_UNIT().PCSrc) {
-            case 0: // default path
-                this.PC += 4;
-                break;
-            case 1: // branch logic
-                this.PC = this.JUMP_ADDRESS;
-                logger.info("new pc: " + this.PC);
-                break;
-            case 2: // jr
-                this.PC = read_data_1;
-                logger.info("updated pc with read_data_1 " + read_data_1);
-                break;
-            case 3: // jal
-                this.PC += 4;
-                break;
-            default:
-                throw new IllegalStateException(get_MAIN_CONTROL_UNIT().PCSrc + " is not a valid PCSrc option [-1, 0, 1, 2, 3]");
-        }
     }
 
     int alusrc_mux() {
         Set<Integer> valid_alusrc = Set.of(-1, 0, 1);
         assert valid_alusrc.contains(get_MAIN_CONTROL_UNIT().ALUSrc) : "ALUSrc value is invalid";
 
-        if (get_MAIN_CONTROL_UNIT().ALUSrc == 0) {
-            return get_REG().read_data_2();
-        }
-        else {  // i type
-            logger.info("retrieving Integer.parseInt(this.IMMEDIATE): " + Integer.parseInt(this.IMMEDIATE));
-            return Integer.parseInt(this.IMMEDIATE);
+        switch (get_MAIN_CONTROL_UNIT().ALUSrc) {
+            case -1:
+                logger.info("Don't care in alusrc_mux()");
+                return 0;
+            case 0:
+                return get_REG().read_data_2();
+            case 1:
+                logger.info("retrieving Integer.parseInt(this.IMMEDIATE): " + Integer.parseInt(this.IMMEDIATE));
+                return Integer.parseInt(this.IMMEDIATE);
+            default:
+                throw new IllegalStateException("ALUSrc value seems to be incorrect");
         }
     }
 
@@ -258,12 +276,12 @@ public class MIPS {
         if (get_MAIN_CONTROL_UNIT().Jump == 1) {
             this.TARGET = this.BIT32_INSTRUCTION.substring(6, 32);
             logger.info("retrieved target for jump : " + this.TARGET);
-            //program_counter_adder();
             jump_mux();
         }
 
         this.RS = this.BIT32_INSTRUCTION.substring(6, 11);
         get_REG().read_register_1(get_register_value_from_bit5(this.RS));
+        logger.info("rs register: " + get_register_from_bit5(this.RS));
         regdst_mux();
 
         if (get_MAIN_CONTROL_UNIT().ALUSrc == 1) {
@@ -272,7 +290,6 @@ public class MIPS {
 
         if (get_MAIN_CONTROL_UNIT().LUICtr == 1) {
             luictr_mux();
-            return;
         }
 
         if (testing_mode) { return; }
@@ -282,19 +299,15 @@ public class MIPS {
     void jump_mux() {
         int parsed_target = Integer.parseInt(this.TARGET, 2);   // 26 bit immediate
         int word_aligned = parsed_target * 4;   // remember, when constructing the 32 bit, the last 2 insiginificant bits are chopped off, use this to word align it
-        int upper_bits = this.PC & 0xF0000000; // the first hexadecimal doesn't matter, this represents the upper 4 bits of the pc + 4
+        int upper_bits = this.PC & 0xF0000000; //mips.load_memory(); the first hexadecimal doesn't matter, this represents the upper 4 bits of the pc + 4
         this.JUMP_ADDRESS = upper_bits | word_aligned; // XXXXYYYYYYYYYYYYYYYYYYYYYYYYYYYY, combine them together
         logger.info("Parsed target: " + parsed_target);
         logger.info("Word aligned: 0x" + Integer.toHexString(word_aligned));
         logger.info("Upper bits: 0x" + Integer.toHexString(upper_bits));
-        logger.info("Final jump address: 0x" + Integer.toHexString(this.JUMP_ADDRESS));
+        logger.info("this.JUMP_ADDRESS: " + this.JUMP_ADDRESS);
 
         assert this.JUMP_ADDRESS >= TEXT_START_ADDRESS : "Jump address is before the text segment";
         assert (this.JUMP_ADDRESS % 4) == 0 : "Jump address is not a multiple of four, incorrect jump address";
-    }
-
-    void program_counter_adder() {
-        this.PC += 4;
     }
 
     void luictr_mux() {
@@ -306,7 +319,6 @@ public class MIPS {
             get_REG().write_data(imm_shifted_16bits);
 
             if (testing_mode) { return; }
-            write_back();
         }
     }
 
@@ -345,7 +357,7 @@ public class MIPS {
                 assert Mappings.BIT5_TO_REG.containsKey(this.RT) : "regdst mux mapping error";
 
                 get_REG().write_register(get_register_from_bit5(this.RT));
-                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
+                logger.info("regdst mux [rt] of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
                 break;
             case 1:
                 assert Mappings.BIT5_TO_REG.containsKey(this.RT) : "regdst mux mapping error";
@@ -353,8 +365,8 @@ public class MIPS {
 
                 get_REG().read_register_2(get_register_value_from_bit5(this.RT));
                 get_REG().write_register(get_register_from_bit5(this.RD));
-                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
-                logger.info("regdst mux of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RD));
+                logger.info("regdst mux [rt] of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RT));
+                logger.info("regdst mux [rd] of " + get_MAIN_CONTROL_UNIT().RegDst + ": " + get_register_from_bit5(this.RD));
                 break;
             case 2:
                 assert Mappings.BIT5_TO_REG.containsKey(this.RS) : "regdst mux mapping error";
@@ -367,9 +379,18 @@ public class MIPS {
         }
     }
 
+    void instruction_fetch() {
+        while (this.PC < this.INSTRUCTIONS.size() * 4 + TEXT_START_ADDRESS) {
+            if (!output_stream_mode) { print_pc_and_registers(); }
+
+            instruction_memory();
+            if (testing_one_instruction) { return; }
+        }
+        System.out.println("-- program finished running (dropped off bottom) --");
+    }
+
     void instruction_memory() {
         String mips_instruction = read_address();
-        // -- MIGHT HAVE TO ASSIGN PC TO READ_ADDRESS.KEY OR SOMETHING
         StringBuilder instruction_in_bit32 = new StringBuilder();
 
         for (int curr_char_ind = 0; curr_char_ind < mips_instruction.length(); curr_char_ind++) {
@@ -386,22 +407,6 @@ public class MIPS {
 
         if (testing_mode) { return; }
         instruction_decode();
-    }
-
-    void program_counter() {
-        while (this.PC < this.INSTRUCTIONS.size() * 4 + TEXT_START_ADDRESS) {
-            if (get_MAIN_CONTROL_UNIT().Jump != 1) {
-                instruction_memory();
-            }
-            else if (get_MAIN_CONTROL_UNIT().Jump == 1) {
-                this.PC = this.JUMP_ADDRESS;
-                instruction_memory();
-            }
-            else {
-                throw new IllegalStateException("Jump control signal may be incorrect in the Main Control Unit");
-            }
-        }
-        System.out.println("-- program finished running (dropped off bottom) --");
     }
 
     public void load_memory(String data_file) throws IOException {
@@ -444,5 +449,5 @@ public class MIPS {
     int get_register_value_from_bit5(String register_in_bit5) { return this.REGISTERS.get(Mappings.BIT5_TO_REG.get(register_in_bit5)); }
     String get_register_from_bit5(String register_in_bit5) { return Mappings.BIT5_TO_REG.get(register_in_bit5); }
     String read_address() { return this.INSTRUCTIONS.get(this.PC); }
-    void print_pc_and_registers() { System.out.println("PC: " + this.PC + " " + this.PC_AND_REGISTERS.get(this.PC)); }
+    void print_pc_and_registers() { System.out.println("PC: " + (this.PC - 4) + " " + this.PC_AND_REGISTERS.get(this.PC)); }
 }

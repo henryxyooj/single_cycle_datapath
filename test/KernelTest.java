@@ -22,7 +22,7 @@ public class KernelTest {
     private final PrintStream original_out = System.out;
 
     // providing System.in input
-    private final ByteArrayInputStream input_stream = new ByteArrayInputStream("42\n".getBytes()); // look this up later
+    private final ByteArrayInputStream input_stream = new ByteArrayInputStream("42\n".getBytes());
     private final java.io.InputStream original_in = System.in;
 
     @BeforeEach
@@ -109,13 +109,9 @@ public class KernelTest {
     }
 
     @Test
-    void testHandleUnalignedMemoryReading() {
-
-    }
-
-    @Test
     void testHandlerReadInteger() {
         REGISTERS.put("$v0", 5);
+        krnl.testing_mode = true;
 
         System.setIn(new ByteArrayInputStream("42\n".getBytes()));
 
@@ -127,7 +123,7 @@ public class KernelTest {
     @Test
     void testHandlerExit() {
         REGISTERS.put("$v0", 10);
-
+        krnl.testing_mode = true;
         krnl.handler(REGISTERS, MEMORY_AND_WORDS);
 
         String output = output_stream.toString().trim();

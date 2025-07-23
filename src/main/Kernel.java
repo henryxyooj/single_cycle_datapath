@@ -1,21 +1,8 @@
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Logger;
 
 public class Kernel {
-    private static final Logger logger = Logger.getLogger(MIPS.class.getName());
-    static {
-        // OFF, INFO, WARNING, SEVERE
-        //logger.setLevel(Level.OFF);
-
-        ConsoleHandler handler = new ConsoleHandler();
-        handler.setFormatter(new LoggerFormatter());
-        logger.setUseParentHandlers(false);
-        logger.addHandler(handler);
-    }
-
     boolean testing_mode = false;
 
     void handler(Map<String, Integer> REGISTERS, Map<Integer, String> MEMORY_AND_WORDS) {
@@ -37,6 +24,7 @@ public class Kernel {
                 break;
             case 10: // exit
                 System.out.println("-- program is finished running --");
+                if (!testing_mode) { System.exit(0); }
                 break;
             default:
                 throw new IllegalArgumentException("Syscall code is not supported");
@@ -60,11 +48,7 @@ public class Kernel {
                 while ((unaligned_memory_address % 4) != 0) {
                     unaligned_memory_address--;
                     address_recalculation++;
-                    logger.info("unaligned_memory_address: " + unaligned_memory_address);
-                    logger.info("address_recalculation: " + address_recalculation);
                 }
-
-                if (testing_mode) { return; }
 
                 handle_memory_reading(MEMORY_AND_WORDS, unaligned_memory_address, isModded, address_recalculation);
                 break;

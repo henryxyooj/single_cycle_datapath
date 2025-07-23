@@ -193,7 +193,7 @@ public class MainControlUnitTest {
         assertEquals(0, mcu.RegWrite);
         assertEquals(1, mcu.Jump);
         assertEquals(0, mcu.LUICtr);
-        assertEquals(0, mcu.PCSrc);
+        assertEquals(3, mcu.PCSrc);
         assertEquals("XX", mcu.ALUOp);
         assertEquals("j", mcu.instruction);
     }
