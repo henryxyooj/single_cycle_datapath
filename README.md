@@ -28,7 +28,7 @@ This Java program that will take MIPS machine code instructions (reduced) and si
   + exit
 ___
 ## Output
-Provided with the path to the .text and .data file, which will contain a sequence of data represented in ASCII hex format, one word of data per line. The program will read these files, and then simulate execution of the MIPS program, maintaining a representation of the internal MIPS CPU state, including registers and memory including registers and memory simulating the single cycle version of the processor.
+Provided with the path to the .text and .data file, which will contain a sequence of data represented in ASCII hex format, one word of data per line. The program will read these files, and then simulate execution of the MIPS program, maintaining a representation of the internal MIPS CPU state, including registers and memory simulating the single cycle version of the processor.
 
 The output will be how the program interfaces with the user.
 That is, if the following sequence of instructions were executed:
