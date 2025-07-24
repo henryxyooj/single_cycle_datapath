@@ -3,13 +3,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MIPS {
     private static final Logger logger = Logger.getLogger(MIPS.class.getName());
     static {
         // OFF, INFO, WARNING, SEVERE
-        //logger.setLevel(Level.OFF);
+        logger.setLevel(Level.OFF);
 
         ConsoleHandler handler = new ConsoleHandler();
         handler.setFormatter(new LoggerFormatter());
@@ -144,7 +145,7 @@ public class MIPS {
             logger.info("MemtoReg is: " + get_MAIN_CONTROL_UNIT().MemtoReg);
         }
         else if (get_MAIN_CONTROL_UNIT().MemtoReg == 1) {
-            logger.info("MemtoReg is 1: " + get_MAIN_CONTROL_UNIT().MemtoReg);
+            logger.info("MemtoReg is: " + get_MAIN_CONTROL_UNIT().MemtoReg);
             get_REG().write_data(get_DATA_MEMORY().READ_DATA);
             logger.info("retrieving DATA_MEMORY.READ_DATA: " + get_DATA_MEMORY().READ_DATA);
         }
@@ -381,7 +382,7 @@ public class MIPS {
 
     void instruction_fetch() {
         while (this.PC < this.INSTRUCTIONS.size() * 4 + TEXT_START_ADDRESS) {
-            if (!output_stream_mode) { print_pc_and_registers(); }
+            //if (!output_stream_mode) { print_pc_and_registers(); }
 
             instruction_memory();
             if (testing_one_instruction) { return; }

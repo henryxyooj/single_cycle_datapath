@@ -923,11 +923,119 @@ public class IntegrationTest {
         Map<String, Integer> initial_registers = new HashMap<>(mips.REGISTERS);
         assertEquals(0x00400000, mips.PC);
         mips.instruction_fetch(); // lui $1, 0x00001234
-        assertEquals(0x00400004, mips.REGISTERS.get("$ra"));
+        assertEquals(0x12340000, mips.REGISTERS.get("$at"));
         for (String reg : initial_registers.keySet()) {
-            if (!reg.equals("$ra")) {
+            if (!reg.equals("$at")) {
                 assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
             }
         }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400004, mips.PC);
+        mips.instruction_fetch(); // ori $8, $1, 0x00005678
+        assertEquals(0x12345678, mips.REGISTERS.get("$t0"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$t0")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400008, mips.PC);
+        mips.instruction_fetch(); // lui $1, 0x00001001
+        assertEquals(0x10010000, mips.REGISTERS.get("$at"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$at")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x0040000c, mips.PC);
+        mips.instruction_fetch(); // ori $9, $1, 0x00000000
+        assertEquals(0x10010000, mips.REGISTERS.get("$t1"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$t1")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400010, mips.PC);
+        mips.instruction_fetch(); // sw $8, 0x00000000($9)
+        assertEquals("0x12345678", mips.MEMORY_AND_WORDS.get(0x10010000));
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400014, mips.PC);
+        mips.instruction_fetch(); // addiu $8, $0, 0x00000000
+        assertEquals(0x00000000, mips.REGISTERS.get("$t0"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$t0")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400018, mips.PC);
+        mips.instruction_fetch(); // lw $8, 0x00000000($9)
+        assertEquals(0x12345678, mips.REGISTERS.get("$t0"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$t0")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x0040001c, mips.PC);
+        mips.instruction_fetch(); // addiu $2, $0, 0x00000001
+        assertEquals(0x00000001, mips.REGISTERS.get("$v0"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$v0")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400020, mips.PC);
+        mips.instruction_fetch(); // add $4, $8, $0
+        assertEquals(0x12345678, mips.REGISTERS.get("$a0"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$a0")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        System.setOut(new PrintStream(output_stream));
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400024, mips.PC);
+        mips.instruction_fetch(); // syscall [print string]
+        assertEquals("305419896\n", output_stream.toString());
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+        System.setOut(original_out);
+
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x00400028, mips.PC);
+        mips.instruction_fetch(); // addiu $2, $0, 0x0000000a
+        assertEquals(0x0000000a, mips.REGISTERS.get("$v0"));
+        for (String reg : initial_registers.keySet()) {
+            if (!reg.equals("$v0")) {
+                assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+            }
+        }
+
+        System.setOut(new PrintStream(output_stream));
+        initial_registers = new HashMap<>(mips.REGISTERS);
+        assertEquals(0x0040002c, mips.PC);
+        mips.instruction_fetch(); // syscall [exit]
+        assertEquals("305419896\n-- program is finished running --\n", output_stream.toString());
+        for (String reg : initial_registers.keySet()) {
+            assertEquals(initial_registers.get(reg), mips.REGISTERS.get(reg));
+        }
+        System.setOut(original_out);
     }
 }

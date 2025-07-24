@@ -26,12 +26,13 @@ public class DataMemory {
 
         if (MEMORY_AND_WORDS.containsKey(this.READ_ADDRESS)) {
             String word = MEMORY_AND_WORDS.get(this.READ_ADDRESS);
+            if (word.startsWith("0x")) { word = word.substring(2); }
+
             assert word.length() == 8 : "Word is not 4 bytes";  // 8 hex digits, 32 bits in total
 
             for (int i = 0; i < word.length(); i += 2) {
                 String two_chars = word.substring(i, i + 2);
                 dec_to_hex.append(two_chars);
-                if (i > 8) { throw new IllegalArgumentException("Memory word must be 4 bytes"); }
             }
 
             String hex_string = dec_to_hex.toString();
