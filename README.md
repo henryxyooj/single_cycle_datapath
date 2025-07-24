@@ -1,4 +1,5 @@
 # Reduced Instruction Set MIPS Simulator
+![Alt Text](resources/images/single_cycle_datapath.png)
 ___
 
 ## Introduction
