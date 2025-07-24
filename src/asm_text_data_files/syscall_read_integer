@@ -1,0 +1,9 @@
+.data
+  user_input: .word 0     # reserve space for input if storing needed (optional)
+
+.text
+main:
+  li $v0, 5           # syscall code 5 = read integer
+  syscall             # result will be placed in $v0
+
+  move $t0, $v0       # store input in $t0 (for later use)

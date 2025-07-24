@@ -1,0 +1,13 @@
+.text
+.globl main
+
+main:
+  li $t1, 12
+  li $t4, 4
+  li $t2, 12
+  
+  beq $t1, $t2, equals
+  li $t5, 64
+  
+equals:
+  li $t1, 32

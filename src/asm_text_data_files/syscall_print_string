@@ -1,0 +1,10 @@
+.data
+  msg: .asciiz "Hello, world!"
+  msg1: .asciiz "Unaligned word"
+  
+.text
+  main:
+    li $v0, 4
+    la $a0, msg
+    syscall
+  

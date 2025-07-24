@@ -1,0 +1,10 @@
+.data
+value: .word 0x12345678
+
+.text
+.globl main
+
+main:
+  li $t0, 0x87654321
+  la $t1, value
+  sw $t0, 0($t1)
